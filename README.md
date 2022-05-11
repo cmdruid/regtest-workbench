@@ -1,4 +1,4 @@
-# Regtest Stack
+# Regtest Node
 
 A containerized development stack of Tor, Bitcoin Core and Lightning Core.
 
@@ -10,7 +10,7 @@ A containerized development stack of Tor, Bitcoin Core and Lightning Core.
 git clone *this repository url*
 cd regtest-node
 
-./start.sh
+./start.sh --help
 ```
 
 The start script will launch the included Dockerfile inside a container, copy files from `config` and `build/out`, mount the `run` and `share` folders, install any dependencies and setup the environment.
