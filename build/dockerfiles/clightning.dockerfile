@@ -1,6 +1,6 @@
 FROM debian:bullseye-slim AS build-stage
 
-ARG BIN_NAME
+ARG BIN_NAME="clightning"
 
 ENV BUILD_TARGET="x86_64-pc-linux-gnu"
 ENV BUILD_BRANCH="v0.10.2"
