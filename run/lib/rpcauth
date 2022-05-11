@@ -1,0 +1,95 @@
+#!/bin/sh
+## POSIX compliant script for generating Bitcoin RPC credentials.
+## Requires the openssl library to be installed.
+## Distributed under the MIT software license.
+
+set -E
+
+###############################################################################
+# Environment
+###############################################################################
+
+DEFAULT_RPC_USER="regtest"
+CONF_NAME="rpcauth.conf"
+CRED_NAME="credentials.conf"
+
+###############################################################################
+# Methods
+###############################################################################
+
+usage() {
+  printf %s\\n "
+Usage: $(basename $0) [OPTIONS] [USERNAME] [PASSWORD]
+Generate login credentials for a JSON-RPC user. Both username and password arguments are optional.
+
+Example: $(basename $0) $DEFAULT_RPC_USER password123
+
+Options:
+  -h, --help        Display this help text and exit.
+  -s, --save PATH   Save your configuration to an $CONF_NAME file at PATH.
+  "
+}
+
+generate_salt() {
+  ## Generates a 16 character random salt in hex format (converted to lowercase).
+  xxd -p -l 16 /dev/urandom
+}
+
+generate_password() {
+  ## Generates a 32 character random password in base64 format.
+  ## Includes LC_ALL=C flag for compatibility with other platforms.
+  cat /dev/urandom \
+    | env LC_ALL=C tr -dc 'a-zA-Z0-9' \
+    | fold -w 32 \
+    | head -n 1 \
+    | base64
+}
+
+password_to_hmac() {
+  ## Generates a SHA256 hmac, in hex format, using the provided message($1) and key($2).
+  ## Input is converted into a utf-8 compatible byte-stream before the openssl digest.
+  KEY=`printf %s "$2" | iconv -t utf-8`
+  printf %s "$1" \
+    | iconv -t utf-8 \
+    | openssl dgst -sha256 -hmac "$KEY" -hex \
+    | awk -F '=' '{ print $2 }' \
+    | tr -d ' '
+}
+
+pkg_err() {
+  [ -n "$1" ] && echo "Package '$1' not found! Make sure it is installed and visible from your PATH."
+}
+
+###############################################################################
+# Script
+###############################################################################
+
+## Check if required packages are installed.
+required="openssl xxd"
+for pkg in $required; do if [ -z "$(which $pkg)" ]; then pkg_err $pkg && exit 1; fi; done
+
+## Parse arguments.
+for arg in "$@"; do
+  case $arg in
+    -h|--help)     usage;                 exit 0;;
+    -s=*|--save=*) SAVE_PATH="${arg#*=}"; shift ;;
+  esac
+done
+
+## Set variables for username and password.
+if [ -z "$1" ]; then RPC_USER=$DEFAULT_RPC_USER; else RPC_USER="$1"; fi
+if [ -z "$2" ]; then RPC_PASS=`generate_password`; else RPC_PASS="$2"; fi
+
+## Create our credentials and store them.
+SALT=`generate_salt`
+HMAC=`password_to_hmac $RPC_PASS $SALT`
+RPCAUTH_STRING="$RPC_USER:$SALT\$$HMAC"
+
+## If set, save rpcauth string to specified path.
+if [ -d "$SAVE_PATH" ]; then 
+  printf %b\\n "rpcauth=$RPCAUTH_STRING" > $SAVE_PATH/$CONF_NAME
+  printf %b\\n "rpcuser=$RPC_USER\nrpcpassword=$RPC_PASS" > $SAVE_PATH/$CRED_NAME
+fi
+
+## Print credentials to console.
+printf %b\\n "rpcuser=$RPC_USER\nrpcpassowrd=$RPC_PASS"

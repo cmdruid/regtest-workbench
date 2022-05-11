@@ -1,0 +1,20 @@
+#!/bin/sh
+## Takes an input pipe of JSON, and outputs the value for a given key.
+
+set -e
+
+usage() {
+  printf "
+Usage: jgrep [KEY]
+Takes an input from STDIN that contains valid JSON, and outputs the value for a given key.
+
+Usage:
+  printf \"\$json_data\" | jgrep key
+"
+}
+
+## If argument empty or help, display help message.
+if [ -z "$1" ] || [ "$1" = "--help" ]; then usage && exit 0; fi
+
+## Grep the key from the JSON input, then sanitize.
+grep \"$1\"\: | awk '{print $2}' | tr -d ',"' < /dev/stdin

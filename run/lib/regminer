@@ -1,0 +1,118 @@
+#!/bin/sh
+## Simulates a miner on your blockchain.
+
+set -E
+
+###############################################################################
+# Environment
+###############################################################################
+
+INTERVAL=10
+SCHEDULE=0
+COUNTER=0
+
+LOG_FILE="/var/log/regminer.log"
+
+###############################################################################
+# Methods
+###############################################################################
+
+usage() {
+  printf \\n "Work in progress..."
+}
+
+timestamp() {
+  printf "[ $(date "+%Y-%m-%d|%H:%M:%S") ]"
+}
+
+check_miner() {
+  ps aux | grep regminer | grep -E 'bc[[:alnum:]]{42}' | awk '{ print $2 }' | head -n 1
+}
+
+kill_miner() {
+  pid=`check_miner`
+  if [ -n "$pid" ]; then kill $pid; else echo "Regminer not running!"; fi
+}
+
+is_connected() {
+  [ -n "$(bitcoin-cli -getinfo | grep Chain)" ]
+}
+
+is_tx_available() {
+  mempool_data=`bitcoin-cli getmempoolinfo`
+  mempool_load=`printf "$mempool_data" | jgrep loaded`
+  mempool_size=`printf "$mempool_data" | jgrep size`
+  [ "$mempool_load" = "true" ] && [ "$mempool_size" -ne 0 ]
+}
+
+is_valid_address() {
+  [ -n "$1" ] && printf "$1" | grep -E 'bc[[:alnum:]]{42}'
+}
+
+is_chain_synced() {
+  [ "$(bitcoin-cli getblockchaininfo | jgrep initialblockdownload)" = "false" ]
+}
+
+check_schedule() {
+  [ $((SCHEDULE)) -ne 0 ] && [ $((COUNTER)) -gt $((SCHEDULE)) ]
+}
+
+mine_block() {
+  [ -n "$1" ] && bitcoin-cli generatetoaddress 1 "$1" >> /dev/null 2>&1
+}
+
+main() {
+  while true; do
+    if is_chain_synced; then
+      if is_tx_available || check_schedule; then
+        echo "$(timestamp) Mining block to address: $address" >> $LOG_FILE
+        mine_block $address
+        COUNTER=0
+      fi
+      sleep $INTERVAL && COUNTER=$((COUNTER + INTERVAL))
+    else
+      echo "$(timestamp) Blockchain not synced, aborting fow now." >> $LOG_FILE
+    fi
+  done
+}
+
+###############################################################################
+# Script
+###############################################################################
+
+## If no arguments are speicified, print usage and exit.
+if [ -z "$1" ]; then usage && exit 0; fi
+
+## If bitcoin-cli is not installed, throw an error.
+if [ -z "$(which bitcoin-cli)" ]; then echo "Error: bitcoin-cli not installed!" && exit 1; fi
+
+## If bitcoind is not running, throw an error.
+if [ -z "$(pgrep bitcoind)" ]; then echo "Error: bitcoind not running!" && exit 1; fi
+
+## If bitcoin-cli unable to connect to daemon, throw an error.
+if ! is_connected; then echo "Error: bitcoin-cli unable to connect to daemon!" && exit 1; fi
+
+## Parse arguments.
+for arg in "$@"; do
+  case $arg in
+    -h|--help)    usage;       exit 0 ;;
+    -c|--check)   check_miner; exit 0 ;;
+    -k|--kill)    kill_miner;  exit 0 ;;
+    -v|--verbose) VERBOSE=1;   shift  ;;
+    -i=*|--interval=*) INTERVAL="${arg#*=}"; shift ;;
+    -s=*|--schedule=*) SCHEDULE="${arg#*=}"; shift ;;
+  esac
+done
+
+## If no arguments are speicified, print usage and exit.
+if ! is_valid_address $1; then echo "Error: Must specify a valid address!" && exit 0; fi
+
+address="$1"
+
+## Reset log file.
+if [ -e "$LOG_FILE" ]; then
+  printf %b\\n "Interval: ${INTERVAL}s, Schedule: ${SCHEDULE}s, Address: $address" > $LOG_FILE;
+fi
+
+## Start main loop.
+main & printf %b\\n "Miner process started at PID $! and delivering to address $address.\nScanning mempool every ${INTERVAL}s ..."

@@ -1,0 +1,9 @@
+{
+  "PORT": 3001,
+  "DOCPORT": 4001,
+  "PROTOCOL": "https",
+  "EXECMODE": "production",
+  "LNRPCPATH": "/data/lightning/regtest",
+  "RPCCOMMANDS": ["*"],
+  "DOMAIN": "localhost"
+}

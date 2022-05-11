@@ -1,0 +1,5 @@
+build/out/*
+share
+run/lib/.*
+run/utils/.*
+app

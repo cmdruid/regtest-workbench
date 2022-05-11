@@ -1,0 +1,150 @@
+#!/bin/sh
+## Bind an outbound port to an onion address. Requires socat and a tor proxy.
+
+set -e
+
+###############################################################################
+# Environment
+###############################################################################
+
+DEFAULT_PROXY="127.0.0.1"
+DEFAULT_SOCKS="9050"
+LOG_PATH="/var/log/onionsock"
+WAIT_TIME=2
+
+###############################################################################
+# Methods
+###############################################################################
+
+usage() {
+  printf "
+Usage $(basename $0) [ OPTIONS ] [ --port LOCALPORT ] DESTINATION.onion:PORT
+
+Bind a local port and forward its traffic to an onion address.
+Requires socat to be installed, and a tor proxy to be running.
+
+Example: $(basename $0) --port 8332 yaknaqys3xvzfsaskexdmil7ex.onion:8332
+
+Arguments:
+  LOCALPORT             The local port that traffic will be forwarding from.
+  DESTINATION           The destination address:port where to forward traffic.
+
+Options:
+  -h, --help            Display this help text and exit.
+  -p, --port PORT       Set the local PORT to forward traffic from.
+  -k, --kill PORT       Kill existing process listening at PORT.
+  -c, --check PORT      Returns PID of process listening at PORT, or blank.
+  -x, --proxy ADDR      Set a custom proxy address (default is $DEFAULT_PROXY).
+  -s, --socks PORT      Set a custom socks port (default is $DEFAULT_SOCKS).
+"
+}
+
+is_valid_port() {
+  [ -n "$1" ] && [ "$1" -gt 1023 ] && [ "$1" -lt 65536 ]
+}
+
+is_valid_onion() {
+  [ -n "$1" ] && [ -n "$(echo $1 | grep -E '[[:alnum:]]{56}.onion:[[:digit:]]{2,5}')" ]
+}
+
+is_pid_at_port() {
+  [ -n "$1" ] && [ "$(ps aux | grep socat | grep tcp-listen:$1)" ]
+}
+
+get_pid_at_port() {
+  [ -n "$1" ] && ps aux | grep socat | grep tcp-listen:$1 | awk '{ print $2 }'
+}
+
+check_port() {
+  [ -n "$1" ] && is_valid_port $1 && get_pid_at_port $1
+}
+
+kill_port() {
+  [ -n "$1" ] && pid=`get_pid_at_port $1`
+  if [ -n "$pid" ]; then 
+    kill -9 $pid
+    echo "Killed existing process for port $1 at pid $pid."
+  fi
+}
+
+cleanup() {
+  [ $? -eq 0 ] && exit 0 || echo "$0 FAILED at line ${LINENO}" && kill_port $PORT
+}
+
+###############################################################################
+# Main
+###############################################################################
+
+main() {
+  ## Start the socat program as a daemon service.
+  socat tcp-listen:$PORT,reuseaddr,fork \
+    socks4a:$PROXY:$DEST_HOST:$DEST_PORT,socksport=$SOCKS > $LOG_PATH/$PORT.log &
+}
+
+###############################################################################
+# Script
+###############################################################################
+
+trap 'cleanup' EXIT
+
+## Check if socat is installed.
+if [ -z "$(which socat)" ]; then
+  echo "Socat not detected! Make sure that it is installed and visible from your PATH." && exit 1
+fi
+
+## Check if tor is installed.
+if [ -z "$(which tor)" ]; then
+  echo "Tor not detected! Make sure that it is installed and visible from your PATH." && exit 1
+fi
+
+## If log path does not exist, create it.
+if [ ! -d "$LOG_PATH" ]; then mkdir -p "$LOG_PATH"; fi
+
+## If no arguments given, print usage and exit.
+if [ -z "$1" ]; then usage && exit 0; fi
+
+## Parse arguments.
+for arg in "$@"; do
+  case $arg in
+    -h|--help)   usage;         exit 0 ;;
+    -c|--check)  check_port $2; exit 0 ;;
+    -k|--kill)   kill_port $2;  exit 0 ;;
+    -p|--port)   PORT="$2";     shift 2;;
+    -x|--proxy)  PROXY="$2";    shift 2;;
+    -s|--socks)  SOCKS="$2";    shift 2;;
+  esac
+done
+
+ENDPOINT="$1"
+
+## Set default variables.
+if [ -z "$PROXY" ]; then PROXY=$DEFAULT_PROXY; fi
+if [ -z "$SOCKS" ]; then SOCKS=$DEFAULT_SOCKS; fi
+
+## Check if a valid port number has been given.
+if ! is_valid_port $PORT; then
+  echo "Invalid port number!" && exit 1
+fi
+
+## Check if a valid onion address has been given.
+if ! is_valid_onion $ENDPOINT; then
+  echo "Invalid onion string!" && exit 1
+fi
+
+## Split destination host and port from string.
+DEST_HOST=`printf "$ENDPOINT" | awk -F ':' '{ print $1 }'`
+DEST_PORT=`printf "$ENDPOINT" | awk -F ':' '{ print $2 }'`
+
+## If no port is given, use destination port.
+if [ -z "$PORT" ]; then PORT="$DEST_PORT"; fi
+
+## Kill existing onionsock if already in use.
+kill_port $PORT
+
+## Run main script.
+printf "Setting up socat tunnel ."
+main && sleep $WAIT_TIME & while [ -e /proc/$! ]; do sleep 0.5 && printf "."; done;
+printf %b\\n " done."
+
+## Print success message.
+printf %b\\n "Socat tunnel with pid $! created on port $PORT and redirecting to:\nhttp://$DEST_HOST:$DEST_PORT"

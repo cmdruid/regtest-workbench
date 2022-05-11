@@ -1,0 +1,41 @@
+## =================== .lightning/config ================= ##
+
+network=regtest
+
+## Sets the working directory.
+lightning-dir=/data/lightning
+
+## Sets the logfile path.
+log-file=/var/log/lightningd.log
+
+## Location of the wallet file.
+#wallet=sqlite3:///data/lightning/wallet.sqlite3:/data/backup/wallet.sqlite3
+
+## Up to 32 bytes of UTF-8 characters to tag your node. Anyone can call their 
+## node anything they want. The default is an NSA-style codename derived from 
+## your public key.
+#alias=SILENTPENGUIN
+
+## Your favorite color as a hex code.
+#rgb=024c1e
+
+## Set an IP address (v4 or v6) or automatic Tor address to listen on and (maybe) 
+## announce as our node address.
+#addr=autotor
+
+## Set an IP address or UNIX domain socket to listen to, but do not announce. 
+## A UNIX domain socket is distinguished from an IP address by beginning with a /
+bind-addr=/var/run/lightning.sock
+
+## Set an IP (v4 or v6) address or Tor address to announce. A Tor address is 
+## distinguished by ending in .onion. PORT defaults to 9735.
+#announce-addr=ANNOUNCE_ONION.onion:9375
+
+## Set a socks proxy to use to connect to Tor nodes (or for all connections 
+## if always-use-proxy is set). The port defaults to 9050 if not specified.
+proxy=127.0.0.1:9050
+
+## Always use the proxy, even to connect to normal IP addresses (you can still 
+## connect to Unix domain sockets manually). This also disables all DNS lookups, 
+## to avoid leaking information.
+always-use-proxy=true
