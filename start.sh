@@ -208,8 +208,8 @@ if [ "$RUN_MODE" = "detached" ]; then
   docker logs -f "$SRV_NAME"
   printf "
 =============================================================================
-  Now viewing shell terminal of container. Press Ctrl+C to exit.
+  Initialization complete. Use below command to access container:
+  docker exec -it "$SRV_NAME" bash
 =============================================================================
 "
-  docker exec -it "$SRV_NAME" bash
 fi
