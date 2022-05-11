@@ -22,8 +22,8 @@ Usage: $(basename $0) [ OPTIONS ] TAG
 Launch a docker container for bitcoin / lightning development.
 
 Example: $(basename $0) --seed master
-         $(basename $0) --faucet=master --peer=master alice
-         $(basename $0) --faucet=master --peer=master bob
+         $(basename $0) --faucet=master --peers=master alice
+         $(basename $0) --faucet=master --peers=master,alice bob
 
 Arguments:
   TAG                       Tag name used to identify the container.
