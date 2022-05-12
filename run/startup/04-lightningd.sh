@@ -81,10 +81,10 @@ else echo "Lightning daemon is running under PID: $DAEMON_PID"; fi
 ###############################################################################
 
 ## Generate a funding address.
-address_file="$DATA_PATH/$ADDR_FILE"
-if [ ! -e "$address_file" ]; then
+address_file=`cat $DATA_PATH/$ADDR_FILE`
+if [ -z "$address_file" ]; then
   printf "Generating new payment address for lightning ... "
-  lightning-cli newaddr | jgrep bech32 > $address_file
+  lightning-cli newaddr | jgrep bech32 > $DATA_PATH/$ADDR_FILE
   printf %b\\n " done."
 fi
 
