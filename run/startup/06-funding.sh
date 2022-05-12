@@ -87,14 +87,13 @@ fi
 echo "Checking bitcoin wallet balance ... "
 if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
   if [ -n "$SEED_NODE" ]; then 
-    bitcoin-cli generatetoaddress 1 $1
+    bitcoin-cli generatetoaddress 1 $btc_address
   elif [ -n "$USE_FAUCET" ] && [ -z "$FAUCET_CONF" ]; then
     if ! greater_than $(faucet_cli getbalance) $MIN_FUNDS; then 
       echo "Faucet is broke!" # && mine_blocks 101 $address
     else
       printf %b\\n "Requesting funds from faucet to address $btc_address ... "
-      faucet_cli sendtoaddress $1 $2
-      get_funds $btc_address 5 > /dev/null 2>&1
+      faucet_cli sendtoaddress $btc_address 5 > /dev/null 2>&1
       printf "Waiting (12s) for funds to clear ... "
       sleep 12 && printf %b\\n "done."
     fi
@@ -107,8 +106,8 @@ fi
 echo "Checking lightning wallet balance ... "
 if greater_than $(get_btc_balance) $MIN_FUNDS; then
   if ! greater_than $(get_cln_balance) $MIN_FUNDS; then
-    printf %b\\n "Requesting funds from bitcoin wallet to address $btc_address ... "
-    bitcoin-cli sendtoaddress $cln_address 1
+    printf %b\\n "Requesting funds from bitcoin wallet to address $cln_address ... "
+    bitcoin-cli sendtoaddress $cln_address 1 > /dev/null 2>&1
     printf "Waiting (60s) for funds to clear ... "
     sleep 30 && printf %b\\n "done."
   fi
