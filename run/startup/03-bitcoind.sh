@@ -118,7 +118,7 @@ timeout_child() {
   child=$!
   timeout=$1
   msg=" timed out after $1 seconds.\n"
-  ( sleep $timeout && if ps | grep $child; then kill $child && printf "$msg"; fi ) &
+  ( sleep $timeout; if ps | grep $child > /dev/null; then kill $child && printf "$msg"; fi ) &
   wait $child 2>/dev/null
 }
 
