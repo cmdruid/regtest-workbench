@@ -8,7 +8,7 @@
 DEFAULT_NAME="regtest"
 DEFAULT_TAG="dev"
 ENV_PATH=".env"
-NULL_OUT="/dev/null"
+TERM_OUT="/dev/null"
 ARGS_STR=""
 
 ###############################################################################
@@ -77,7 +77,7 @@ network_exists() {
 
 build_image() {
   printf "Building image for $IMG_NAME from dockerfile ... "
-  docker build --tag $IMG_NAME . > $NULL_OUT
+  docker build --tag $IMG_NAME . > $TERM_OUT
   printf %b\\n "done."
 }
 
@@ -180,7 +180,7 @@ for arg in "$@"; do
     -r|--rebuild)      REBUILD=1;                        shift  ;;
     -w|--wipe)         WIPE=1;                           shift  ;;
     -i|--interactive)  DEVMODE=1;                        shift  ;;
-    -v|--verbose)      NULLOUT="";                       shift  ;;
+    -v|--verbose)      TERM_OUT="/dev/tty";              shift  ;;
     -n|--name)         NAME="$2";                        shift 2;;
     -p=*|--peers=*)    add_arg "ADD_PEERS=${arg#*=}";    shift  ;;
     -c=*|--channels=*) add_arg "ADD_CHANS=${arg#*=}";    shift  ;;
