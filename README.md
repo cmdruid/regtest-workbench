@@ -1,20 +1,21 @@
 # Regtest Node
 
-A containerized stack of Tor / Bitcoin / Ligtning, plus a suite of development tools. Designed for rapid prototyping, so you can deploy your next project lightning-quick!
+A containerized stack of Bitcoin and Ligtning, plus a suite of development tools. Prototype and deploy your next project with lightning speed!
 
 ## How to use
 
-*Make sure that docker is installed, and you are part of docker group.*
+> *Note: Make sure that docker is installed, and your user is part of the docker group.*
 
 To quickly spin up a test network of three nodes:
 
 ```
+## Clone this repository, and make it your working directory.
 git clone *this repository url* && cd regtest-node
 
-## A quick tutorial is built into the help screen.
-./start.sh --help
+## Compiles all the binaries that we will need. May take a while!
+./start.sh --compile
 
-## Your main node. Seed the blockchain and mine blocks.
+## Your first (and main) node. Seeds the blockchain and mines blocks.
 ./start.sh --seed --mine master
 
 ## Meet Alice, who connects to master and requests funding.
@@ -23,27 +24,34 @@ git clone *this repository url* && cd regtest-node
 ## Meet Bob, also funded by master, who connects to Alice and opens a channel.
 ./start/sh --faucet=master --peer=alice --channel=alice bob
 
-... repeat for as many nodes as your like!
+... repeat for as many nodes as you like!
+
+## A quick tutorial is also built into the help screen.
+./start.sh --help
 ```
-Each node is designed to automatically connect with peers (Bitcoin and Lightning), request funds from a designated node, open channels, and auto-balance those channels.
+Each node is designed to automatically connect with peers (*on bitcoin and lightning*), request funds from a designated node, open channels, and auto-balance those channels. All argument flags are optional. The final argument (*which needs no flag*) will give your node a name tag.
 
-Nodes with the `--seed` flag will get your chain started by auto-generating blocks up to a certain height. Block rewards require 100 blocks to mature, so the default height is 150. You only need to use this flag once, and it should be on your first node. 
+Use the `--seed` flag with your first node in order to initiate the chain. The seed node will auto-generate blocks up to a certain height. Block rewards require 100 blocks to mature, so the default height is 150. You only need to use this flag once.
 
-*You should also use your seed node as your facuet, since those blocks rewards will make it filthy rich.*
+The `--mine` flag will configure a node to watch the mempool, then auto-mine blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds, in order to process transactions quickly. If you wish to deploy multiple miners, use a much longer poll time (*or suffer from chain splits!*), or configure a fixed block schedule. See [/doc/man.md](doc/man.md) for more info.
 
-Nodes with the `--mine` flag will scan the mempool and auto-mine blocks in order to settle transactions quickly (can also be configured to mine on a schedule).
+The `--peer` and `--channel` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and balance their channels accordingly!
 
-Nodes with the `--tor` flag will auto-magically peer and route with other nodes that have Tor enabled, no extra configuration required! Any node with tor enabled can still accept peering on both networks, but will prefer tor.
+> Tip: *Designate your seed node as the main faucet, since the initial block rewards will make it filthy rich! Miners may also generate blocks in order to procure funds if their wallet balance is low.*
 
-*This project is designed to automate completely over tor, meaning you can build a regtest network across multiple networks and machines!*
+Nodes with the `--tor` flag will auto-magically setup onion routing and peer with other tor-enabled nodes, no extra configuration required! This flag will also make node endpoints available as (v3) hidden services. Tor-enabled nodes can still communicate with non-tor nodes, but default to using tor if available.
 
-All required authentication keys and credentials are generated and stored in the `/share` folder for easy access (for you and your nodes). The files are namespaced and refreshed each time you restart a given node, so feel free to `--wipe` a node's data store on a frequent basis.
+All settings, keys and credentials for running nodes are stored in the `/share` folder. Each node will mount and scan this folder in order to peer and communicate with other nodes. Files for a given node are refreshed when you restart that node, so feel free to modify a node's settings and data on a frequent basis!
 
-Each node launches with a simple web-wallet (provided by sparko) to manage invoices and test payments between nodes. You also have quick access to `bitcoin-cli` and `lightning-cli` from the terminal.
+> Note: *This project is designed to automate completely over tor, using the `/share` folder. You can copy / distribute these files onto other machines and build a regtest network across multiple networks!*
 
-The `./run/entrypoint.sh` start script included with each node is designed to be re-run repeatedly from the terminal, in order to refresh configurations and resolve any issues during a node's startup process.
+Each node launches with a simple web-wallet for managing invoices and test payments (*provided by sparko*). Nodes will print their local address and login credentials to the console upon startup. You can also manage payments easily using `bitcoin-cli` and `lightning-cli`.
 
-All nodes ship with Flask and Nodejs included, plus a core library of tools for connecting to the underlying Bitcoin / Lightning daemons. *Work in progress* Check out the example projects located in `contrib/examples`, so you can jump into web/app development right away!
+The `./run/entrypoint.sh` startup script is the heart of each node, and is designed to be re-run as many times as you like. If you have a node with issues, try entering the console to run the script manually. The entrypoint script is very informative, and will help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process.
+
+> Tip: *Use the `--interactive` flag to enter a node's console before the entrypoint script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)*
+
+All nodes ship with Flask and Nodejs included, plus a core library of tools for connecting to the underlying Bitcoin / Lightning daemons. *Work in progress* Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
 
 ## How it works
 
