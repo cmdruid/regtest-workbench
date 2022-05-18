@@ -42,3 +42,33 @@ Each node will create their own directory in this folder (named after their `HOS
 ## Contribution
 
 All contributions are welcome! If you have any questions, feel free to send me a message or submit an issue.
+
+## Tools
+
+LNURL Decoder
+https://lnurl.fiatjaf.com/codec
+## Resources
+
+Bitcoin Developer Reference
+https://developer.bitcoin.org/reference/index.html
+
+Core Lightning Documentation
+https://lightning.readthedocs.io
+
+Core Lighting REST API Docs
+https://github.com/Ride-The-Lightning/c-lightning-REST#apis
+
+Sparko Client
+https://github.com/fiatjaf/sparko-client
+
+Pyln-client
+https://github.com/ElementsProject/lightning/tree/master/contrib/pyln-client
+
+clightningjs
+https://github.com/lightningd/clightningjs
+
+Flask Documentation
+https://flask.palletsprojects.com/en/2.1.x
+
+Node.js Documentation
+https://nodejs.org/api
