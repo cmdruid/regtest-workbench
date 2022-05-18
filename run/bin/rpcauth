@@ -92,4 +92,4 @@ if [ -d "$SAVE_PATH" ]; then
 fi
 
 ## Print credentials to console.
-printf %b\\n "rpcuser=$RPC_USER\nrpcpassowrd=$RPC_PASS"
+#printf %b\\n "rpcuser=$RPC_USER\nrpcpassowrd=$RPC_PASS"

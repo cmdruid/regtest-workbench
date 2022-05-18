@@ -7,7 +7,7 @@ set -E
 # Environment
 ###############################################################################
 
-INTERVAL=10
+INTERVAL=2
 SCHEDULE=0
 COUNTER=0
 
@@ -46,7 +46,7 @@ is_tx_available() {
 }
 
 is_valid_address() {
-  [ -n "$1" ] && printf "$1" | grep -E 'bc[[:alnum:]]{42}'
+  [ -n "$1" ] && [ -n "$(printf $1 | grep -E 'bc[[:alnum:]]{42}')" ]
 }
 
 is_chain_synced() {
@@ -58,7 +58,7 @@ check_schedule() {
 }
 
 mine_block() {
-  [ -n "$1" ] && bitcoin-cli generatetoaddress 1 "$1" >> /dev/null 2>&1
+  [ -n "$1" ] && bitcoin-cli generatetoaddress 1 "$1" > /dev/null 2>&1
 }
 
 main() {

@@ -1,14 +1,8 @@
 FROM debian:bullseye-slim
 
-ENV PATH="/root/run/lib:/root/.local/bin:$PATH"
-
 ## Install dependencies.
 RUN apt-get update && apt-get install -y \
-  curl git libevent-dev libsodium-dev man openssl procps qrencode socat xxd vim
-
-## Configure directories.
-RUN mkdir -p /root/app /root/.lightning /var/lib/tor \
-  /var/log/tor /var/log/bitcoin
+  curl git iproute2 jq libevent-dev libsodium-dev man openssl procps python3 python3-pip qrencode socat xxd neovim
 
 ## Copy over binaries.
 COPY build/out/* /tmp/bin/
@@ -32,24 +26,26 @@ RUN rm -rf /tmp/* /var/tmp/*
 ## Uncomment this if you also want to wipe all repository lists.
 #RUN rm -rf /var/lib/apt/lists/*
 
-## Install Node.
-RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - \
-  && apt-get install -y nodejs
+## Install useful Python modules
+RUN pip3 install Flask pyln-client pyln-proto bitstring
 
-## Install node packages.
-RUN npm install -g npm
+## Install Node.
+RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && apt-get install -y nodejs
+
+## Install useful node packages.
+RUN npm install -g npm yarn
+
+## Install sparko binary
+RUN mkdir -p /root/.lightning/plugins \
+  && curl https://github.com/fiatjaf/sparko/releases/download/v2.9/sparko_linux_amd64 \
+  -fsL#o /root/.lightning/plugins/sparko \
+  && chmod +x /root/.lightning/plugins/sparko
 
 WORKDIR /root
 
 ## Install RTL REST API.
-RUN git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git cl-rest
-RUN cd cl-rest && npm install
-
-## Copy configuration files to filesystem root.
-COPY config /
-
-## Ensure environment file is executable.
-RUN touch /root/.environment && chmod +x /root/.environment
+#RUN git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git cl-rest
+#RUN cd cl-rest && npm install
 
 ## Configure user account for Tor.
 # RUN addgroup tor \
@@ -57,8 +53,15 @@ RUN touch /root/.environment && chmod +x /root/.environment
 #   && adduser tor tor \
 #   && chown -R tor:tor /var/lib/tor /var/log/tor
 
-## Setup entrypoint for image.
-COPY run /root/run
-RUN chmod +x /root/run/*
+## Copy configuration and run environment.
+COPY config /root/config/
+COPY run /root/run/
+
+## Make sure scripts are executable.
+RUN chmod +x /root/run/bin /root/run/lib /root/run/startup /root/run/entrypoint.sh
+
+## Configure additional paths.
+ENV PATH="/root/run/bin:/root/.local/bin:$PATH"
+ENV PYPATH="/root/run/pylib:$PYPATH"
 
 ENTRYPOINT [ "/root/run/entrypoint.sh" ]

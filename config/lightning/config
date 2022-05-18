@@ -1,12 +1,15 @@
 ## =================== .lightning/config ================= ##
+## For more information on how to configure this file, see:
+## https://github.com/ElementsProject/lightning/blob/master/doc/lightningd-config.5.md
 
+## Sets the network we are running.
 network=regtest
 
 ## Sets the working directory.
 lightning-dir=/data/lightning
 
 ## Sets the logfile path.
-log-file=/var/log/lightningd.log
+log-file=/var/log/lightning/lightningd.log
 
 ## Location of the wallet file.
 #wallet=sqlite3:///data/lightning/wallet.sqlite3:/data/backup/wallet.sqlite3
@@ -25,17 +28,24 @@ log-file=/var/log/lightningd.log
 
 ## Set an IP address or UNIX domain socket to listen to, but do not announce. 
 ## A UNIX domain socket is distinguished from an IP address by beginning with a /
-bind-addr=/var/run/lightning.sock
+#bind-addr=/var/run/lightning.sock
 
 ## Set an IP (v4 or v6) address or Tor address to announce. A Tor address is 
 ## distinguished by ending in .onion. PORT defaults to 9735.
 #announce-addr=ANNOUNCE_ONION.onion:9375
 
-## Set a socks proxy to use to connect to Tor nodes (or for all connections 
-## if always-use-proxy is set). The port defaults to 9050 if not specified.
-proxy=127.0.0.1:9050
-
 ## Always use the proxy, even to connect to normal IP addresses (you can still 
 ## connect to Unix domain sockets manually). This also disables all DNS lookups, 
 ## to avoid leaking information.
-always-use-proxy=true
+#always-use-proxy=true
+
+## Experimental features.
+large-channels
+experimental-dual-fund
+experimental-onion-messages
+experimental-offers
+
+## Sparko plugin
+plugin=/root/.lightning/plugins/sparko
+sparko-host=0.0.0.0
+sparko-port=9737

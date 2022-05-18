@@ -1,0 +1,45 @@
+## =================== /etc/tor/torrc ================= ##
+
+## Main settings.
+#User tor
+RunAsDaemon 1
+DataDirectory /data/tor
+
+## Log settings.
+Log notice file /var/log/tor/notice.log
+TruncateLogFile 1
+
+## Port to advertise for incoming Tor connections.
+#ORPort 9001
+#ORPort [IPv6-address]:9001
+
+## Mirror directory information for others
+#DirPort 9030
+
+## Run as a relay only (change policy to enable exit node)
+ExitPolicy reject *:*
+ExitPolicy reject6 *:*
+
+## Run Tor as a SOCKS proxy
+SocksPort 9050
+
+## Tor Control Configuration
+#ControlSocket 0
+ControlPort 9051
+CookieAuthentication 1
+CookieAuthFileGroupReadable 1
+CookieAuthFile /var/lib/tor/cookie
+
+## Bitcoin Hidden Service
+HiddenServiceDir /data/tor/services/btc
+HiddenServiceVersion 3
+HiddenServicePort 18443 127.0.0.1:18443               ## Bitcoin-Core RPC Service
+HiddenServicePort 18444 127.0.0.1:18445               ## Bitcoin-Core Peer Service
+
+## C-Lighting Hidden Service
+HiddenServiceDir /data/tor/services/cln
+HiddenServiceVersion 3
+HiddenServicePort 9735 127.0.0.1:9735                 ## C-Lightning Peer Service
+HiddenServicePort 9737 127.0.0.1:9737                 ## C-Lightning RPC Service
+HiddenServicePort 3001 127.0.0.1:3001                 ## C-Lightning REST Service
+HiddenServicePort 4001 127.0.0.1:4001                 ## C-Lightning REST Docs

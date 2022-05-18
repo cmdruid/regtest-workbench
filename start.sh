@@ -116,7 +116,7 @@ main() {
   if [ -n "$DEVMODE" ]; then
     DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
     RUN_MODE="interactive"
-    RUN_FLAGS="-it --rm --entrypoint bash --mount $DEV_MOUNT"
+    RUN_FLAGS="-it --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
   else
     RUN_MODE="detached"
     RUN_FLAGS="-d --restart unless-stopped"
@@ -146,6 +146,17 @@ main() {
   ## If no existing network exists, create it.
   if ! network_exists; then create_network; fi
 
+  ## If additional mount points are specified, build a mount string.
+  if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
+    if [ -z "$(echo $point | grep -E '^/')" ]; then source="$(pwd)/"; fi
+    MOUNTS="$MOUNTS --mount type=bind,source=$source$point,target=/root/$point"
+  done; fi
+
+  ## If additional ports are specified, build a port string.
+  if [ -n "$ADD_PORTS" ]; then for port in `echo $ADD_PORTS | tr ',' ' '`; do
+    PORTS="$PORTS -p $port:$port"
+  done; fi
+
   ## Convert environment file into string.
   if [ -e "$ENV_PATH" ]; then ENV_STR=`read_env $ENV_PATH`; fi
 
@@ -163,7 +174,7 @@ main() {
     --network $NET_NAME \
     --mount type=bind,source=$(pwd)/share,target=/share \
     --mount type=volume,source=$DAT_NAME,target=/data \
-  $RUN_FLAGS $ENV_STR $ARGS_STR $IMG_NAME:latest
+  $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $IMG_NAME:latest
 }
 
 ###############################################################################
@@ -182,11 +193,13 @@ for arg in "$@"; do
     -i|--interactive)  DEVMODE=1;                        shift  ;;
     -v|--verbose)      TERM_OUT="/dev/tty";              shift  ;;
     -n|--name)         NAME="$2";                        shift 2;;
+    -m=*|--mount=*)    ADD_MOUNTS=${arg#*=}              shift  ;;
+    -P=*|--ports=*)    ADD_PORTS=${arg#*=}               shift  ;;
     -p=*|--peers=*)    add_arg "ADD_PEERS=${arg#*=}";    shift  ;;
     -c=*|--channels=*) add_arg "ADD_CHANS=${arg#*=}";    shift  ;;
     -f=*|--faucet=*)   add_arg "USE_FAUCET=${arg#*=}";   shift  ;;
     --seed)            add_arg "SEED_NODE=1";            shift  ;;
-    --disable-tor)     add_arg "DISABLE_TOR=1";          shift  ;;
+    --tor)             add_arg "TOR_ENABLED=1";          shift  ;;
   esac
 done
 

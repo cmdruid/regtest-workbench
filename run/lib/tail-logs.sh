@@ -1,16 +1,16 @@
 #!/bin/sh
 ## Tail multiple logs.
 
-set -e
+set -E
 
 ###############################################################################
 # Environment
 ###############################################################################
 
 LOGS="
-  /var/log/tor/notice.log,
-  /var/log/bitcoin/debug.log,
-  /var/log/lightningd.log,
+  /var/log/tor/notice.log
+  /var/log/bitcoin/debug.log
+  /var/log/lightningd.log
   /var/log/cl-rest.log
 "
 
@@ -20,7 +20,7 @@ LOGS="
 
 log_string() {
   echo "$(
-    for log in $(echo $LOGS | tr ',' '\n'); do
+    for log in "$LOGS"; do
       if [ -e "$log" ]; then echo $log; fi
     done | tr '\n' ' '
   )"
@@ -30,5 +30,4 @@ log_string() {
 # Script
 ###############################################################################
 
-## Start tailing log files.
 tail -f `log_string`

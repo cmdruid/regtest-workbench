@@ -1,5 +1,12 @@
-build/out/*
-share
-run/lib/.*
-run/utils/.*
-app
+/app
+/doc
+/build/out/*
+/run/bin/.*
+/run/config/.*
+/run/lib/.*
+/run/plugins/disabled
+/run/pylib
+/run/startup/*.skip
+/run/plugins
+/share
+sample-compose.yml
