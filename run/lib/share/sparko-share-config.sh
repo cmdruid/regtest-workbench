@@ -51,19 +51,15 @@ if [ -z "$SPARK_PASS" ]; then SPARK_PASS="$(generate_password)"; fi
 
 ## Check if access key exists.
 if [ ! -e "$KEYS_FILE" ] || [ -z "$(cat $KEYS_FILE)" ]; then
-  printf "Generating sparko keys ... " >&2
   printf %b\\n "MASTER_KEY=$(generate_password)" > $KEYS_FILE
   printf %b\\n "SECRET_KEY=$(generate_password):$SECRET_KEY_PERMS" >> $KEYS_FILE
   printf %b\\n "INVOICE_KEY=$(generate_password):$INVOICE_KEY_PERMS" >> $KEYS_FILE
   printf %b\\n "STREAM_KEY=$(generate_password):$STREAM_KEY_PERMS" >> $KEYS_FILE
-  printf %b\\n "done." >&2
 fi
 
 ## Check if login credentials file exists.
 if [ ! -e "$LOGIN_FILE" ] || [ -z "$(cat $LOGIN_FILE)" ]; then
-  printf "Generating sparko login  ... " >&2
   printf %b\\n "USERNAME=$SPARK_USER\nPASSWORD=$SPARK_PASS" > $LOGIN_FILE
-  printf %b\\n "done." >&2
 fi
 
 ## Update configuration in share path.

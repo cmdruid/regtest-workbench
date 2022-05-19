@@ -1,0 +1,5 @@
+#!/bin/bash
+
+code="$1"
+string="$2"
+printf "\e[38;5;${code}m${string}\e[0m"

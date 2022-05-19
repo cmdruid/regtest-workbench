@@ -1,4 +1,4 @@
-/app
+node_modules
 /doc
 /build/out/*
 /run/bin/.*
@@ -7,7 +7,8 @@
 /run/plugins/disabled
 /run/pylib
 /run/startup/*.skip
-/run/plugins
+/run/plugins/.*
 /share
 sample-compose.yml
+.env
 /TODO.md

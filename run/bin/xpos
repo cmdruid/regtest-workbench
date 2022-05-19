@@ -1,0 +1,19 @@
+#!/bin/sh
+## Get current x,y cursor position.
+
+delay=0.01
+offset=77
+
+exec < /dev/tty
+oldstty=$(stty -g)
+stty raw -echo min 0
+tput u7 > /dev/tty
+sleep $delay
+IFS=';' read -r row col
+stty $oldstty
+
+row=$(expr $(expr substr $row 3 99) - 1) # Strip leading escape off
+col=$(expr ${col%R} - 1)                 # Strip trailing 'R' off
+
+## We are returning x-coordinate only.
+printf "$col"

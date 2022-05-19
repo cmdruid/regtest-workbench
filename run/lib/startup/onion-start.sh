@@ -26,19 +26,20 @@ get_services_hostname() {
   done
 }
 
+fprint() {
+  newline=`printf "%.115s" "$1" | cut -f 2- -d ' '`
+  printf %b\\n "$(fgc 215 "|") $newline"
+}
+
 ###############################################################################
 # Script
 ###############################################################################
 
+templ banner "Tor Configuration"
+
 DAEMON_PID=`pgrep tor`
 
 if [ -z "$DAEMON_PID" ]; then
-
-  printf "
-=============================================================================
-  Starting Tor Daemon
-=============================================================================
-  \n"
 
   ## Create missing paths.
   if [ ! -d "$LOGS_PATH" ]; then mkdir -p -m 700 $LOGS_PATH; fi
@@ -49,15 +50,18 @@ if [ -z "$DAEMON_PID" ]; then
   if [ ! -e "$CONF_FILE" ]; then echo "$CONF_FILE is missing!" && exit 1; fi
 
   ## Start tor then tail the logfile to search for the completion phrase.
-  echo "Starting tor process..."
+  printf "Initializing tor ..."
   tor -f $CONF_FILE; tail -f $LOGS_PATH/notice.log | while read line; do
-    echo "$line" && echo "$line" | grep "Bootstrapped 100%"
-    if [ $? = 0 ]; then echo "Tor circuit initialized!" && exit 0; fi
-  done
+    fprint "$line" && echo "$line" | grep "Bootstrapped 100%"
+    if [ $? = 0 ]; then 
+      printf "Tor initialized!"
+      templ ok && exit 0
+    fi
+  done;
 
 else 
   
-  echo "Tor daemon is running under PID: $DAEMON_PID"
+  printf "Tor daemon is running under PID: $(templ hlight $DAEMON_PID)"; templ ok
 
 fi
 

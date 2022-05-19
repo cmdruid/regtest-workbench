@@ -26,13 +26,13 @@ RUN rm -rf /tmp/* /var/tmp/*
 ## Uncomment this if you also want to wipe all repository lists.
 #RUN rm -rf /var/lib/apt/lists/*
 
-## Install useful Python modules
+## Install python modules
 RUN pip3 install Flask pyln-client pyln-proto bitstring
 
 ## Install Node.
 RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && apt-get install -y nodejs
 
-## Install useful node packages.
+## Install node packages.
 RUN npm install -g npm yarn
 
 ## Install sparko binary

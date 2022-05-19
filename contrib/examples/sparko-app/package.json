@@ -1,0 +1,19 @@
+{
+  "name": "regtest-node",
+  "author": "Christopher Scott",
+  "license": "MIT",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "start": "node --es-module-specifier-resolution=node --no-warnings app.js"
+  },
+  "dependencies": {
+    "@nanoexpress/middleware-static-serve": "^1.0.3",
+    "express": "^4.18.1",
+    "lnurl": "^0.24.1",
+    "nanoexpress": "^5.2.3",
+    "pug": "^3.0.2",
+    "qrcode": "^1.5.0",
+    "sparko-client": "^0.0.1"
+  }
+}

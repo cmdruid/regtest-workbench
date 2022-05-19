@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ## Startup script for init.
 
 set -E
@@ -11,18 +11,14 @@ set -E
 # Script
 ###############################################################################
 
-printf "
-=============================================================================
-  Init Configuration
-=============================================================================
-\n"
+templ banner "Init Configuration"
 
 if [ -d "$SHARE_PATH/$HOSTNAME" ]; then
-  printf "Removing existing share configurations ... "
+  printf "Removing existing share configurations"
   rm -r $SHARE_PATH/$HOSTNAME && mkdir -p "$SHARE_PATH/$HOSTNAME"
-  printf %b\\n "done."
+  templ ok
 fi
 
-if [ -n "$TOR_ENABLED" ]; then
-  sh -c $WORK_PATH/lib/onion-setup.sh && wait
+if [ -n "$TOR_NODE" ]; then
+  sh -c $LIB_PATH/startup/onion-start.sh
 fi

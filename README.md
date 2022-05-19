@@ -19,10 +19,10 @@ git clone "this repository url" && cd regtest-node
 ./start.sh --seed --mine master
 
 ## Meet Alice, who connects to master and requests funding.
-./start.sh --faucet=master --peer=master alice
+./start.sh --faucet=master --peers=master alice
 
 ## Meet Bob, also funded by master, who connects to Alice and opens a channel.
-./start/sh --faucet=master --peer=alice --channel=alice bob
+./start/sh --faucet=master --peers=alice --channels=alice bob
 
 ## ... repeat for as many nodes as you like!
 
@@ -35,7 +35,7 @@ Use the `--seed` flag with your first node in order to initiate the chain. The s
 
 The `--mine` flag will configure a node to watch the mempool, then auto-mine blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds, in order to process transactions quickly. If you wish to deploy multiple miners, use a much longer poll time (*or suffer from chain splits!*), or configure a fixed block schedule. ~~See [/doc/man.md](doc/man.md) for more info.~~
 
-The `--peer` and `--channel` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and balance their channels accordingly!
+The `--peers` and `--channels` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and balance their channels accordingly!
 
 > Tip: *Use your seed node as the main faucet, since the initial block rewards will make it filthy rich! Miners may also generate blocks in order to procure funds if their wallet balance is low.*
 

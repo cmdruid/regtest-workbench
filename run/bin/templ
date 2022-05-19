@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+## Utility for generating symbols, templates and animations.
+
+set -E
+
+###############################################################################
+# Environment
+###############################################################################
+
+OFS=85
+
+###############################################################################
+# Methods
+###############################################################################
+
+get_offset() {
+  pos=`xpos`
+  chlen=${#1}
+  total="$((OFS - chlen - pos))"
+  [ "$total" -gt 0 ] && printf $total || printf 0
+}
+
+banner() {
+  [ -n "$2" ] && linecolor="$2" || linecolor="214"
+  [ -n "$3" ] && textcolor="$3" || textcolor="255"
+  printf %b\\n "
+$(fgc $linecolor =============================================================================)
+  $(fgc $textcolor "$1")
+$(fgc $linecolor =============================================================================)
+"
+}
+
+hlight() {
+  [ -n "$2" ] && fgcolor="$2" || fgcolor="252"
+  [ -n "$3" ] && bgcolor="$3" || bgcolor="055"
+  text="$(fgc $fgcolor " $1 ")"
+  printf "$(bgc $bgcolor "$text")"
+}
+
+brkt() {
+  [ -n "$2" ] && txtcolor="$2" || txtcolor="050"
+  [ -n "$3" ] && brkcolor="$3" || brkcolor="255"
+  LB=`fgc $brkcolor "["`
+  RB=`fgc $brkcolor "]"`
+  text=`fgc $txtcolor "$1"`
+  string="$LB $text $RB"
+  padding=`printf "%$(get_offset $string)s" | tr ' ' '.'`
+  printf %b\\n " $padding $string"
+}
+
+###############################################################################
+# Script
+###############################################################################
+
+for arg in "$@"; do
+  case $arg in
+    ok)     shift; brkt "OK";                exit 0;;
+    pass)   shift; brkt "PASS";              exit 0;;
+    conn)   shift; brkt "CONNECTED";         exit 0;;
+    prog)   shift; brkt "IN PROGRESS" "220"; exit 0;;
+    fail)   shift; brkt "FAIL" "160";        exit 0;;
+    brkt)   shift; brkt "$1" "$2" "$3";      exit 0;;
+    banner) shift; banner "$1" "$2" "$3";    exit 0;;
+    hlight) shift; hlight "$1" "$2" "$3";    exit 0;;
+    ddd) exit 0;;
+  esac
+done

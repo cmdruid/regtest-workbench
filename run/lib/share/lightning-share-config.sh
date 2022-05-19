@@ -16,8 +16,6 @@ REST_PORT=3001
 # Script
 ###############################################################################
 
-printf "Refreshing lightning share configuration ... "
-
 node_info=`lightning-cli getinfo`
 
 if [ -z "$node_info" ]; then 
@@ -34,5 +32,3 @@ printf %b\\n "PEER_PORT=$PEER_PORT\nRPC_PORT=$RPC_PORT\nREST_PORT=$REST_PORT" >>
 printf %b\\n "NODE_ID=$(printf "$node_info" | jgrep id)" >> $PEER_FILE
 printf %b\\n "NODE_ALIAS=$(printf "$node_info" | jgrep alias)" >> $PEER_FILE
 printf %b\\n "NODE_COLOR=$(printf "$node_info" | jgrep color)" >> $PEER_FILE
-
-printf %b\\n "done."

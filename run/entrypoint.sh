@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ## Entrypoint script for image.
 
 set -E
@@ -8,6 +8,7 @@ set -E
 ###############################################################################
 
 WORK_PATH="$(dirname $(realpath $0))"
+LIB_PATH="$WORK_PATH/lib"
 SHARE_PATH="/share"
 
 ###############################################################################
@@ -35,21 +36,20 @@ fi
 
 ## Execute startup scripts.
 for script in `find $WORK_PATH/startup -name *.sh | sort`; do
-  SHARE_PATH=$SHARE_PATH WORK_PATH=$WORK_PATH sh -c $script
+  WORK_PATH=$WORK_PATH LIB_PATH=$LIB_PATH SHARE_PATH=$SHARE_PATH \
+  sh -c $script
 done
 
 if [ $? -ne 0 ]; then 
-  BANNER_MSG="Node startup failed!"
-else 
+  templ banner "Node startup failed!"
+else
+  templ banner "Node is initialized!"
   ip_addr=`ip -f inet addr show eth0 | grep -Po 'inet \K[\d.]+'`
-  BANNER_MSG="Node Initialized! Wallet Link: http://$ip_addr:9737"
+  user="$(cat /data/lightning/sparko.login | kgrep USERNAME)"
+  pass="$(cat /data/lightning/sparko.login | kgrep PASSWORD)"
+  printf %b\\n "Wallet Link: $(fgc 033 "http://$ip_addr:9737")"
+  printf %b\\n "Login: $(fgc 255 "$user") // $(fgc 255 "$pass")"
 fi
-
-printf %b\\n "
-=============================================================================
-  $BANNER_MSG
-=============================================================================
-"
 
 ## Setup container for detatched mode.
 if [ -z "$DEVMODE" ]; then

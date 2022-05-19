@@ -54,14 +54,26 @@ def getchannels():
 def getchannelstates(states):
   return [ channel for channel in getchannels() if channel["state"] in states ]
 
-def getpeerchannels(id):
-  return getpeers(id)["channels"]
+def getpeerchannels(id, states=[ "CHANNELD_NORMAL" ]):
+  return [ channel for channel in getpeers(id)["channels"] if channel["state"] in states ]
 
 def peerchannelcount(id):
   return len(getpeerchannels(id))
 
+def getconfirmedchannels(id):
+  return getpeers(id)["channels"]
+
+def confirmedchannelcount(id):
+  return len(getpeerchannels(id))
+
 def peerchannelbalance(id):
-  return [ ch["funding"] for ch in getpeerchannels(id) if ch["state"] == "CHANNELD_NORMAL" ][0]
+  channels = [ ch["funding"] for ch in getpeerchannels(id) if ch["state"] == "CHANNELD_NORMAL" ]
+   
+  if len(channels):
+    funds = channels[0]
+    return f"{msat_to_sat(funds['local_msat'])} / {msat_to_sat(funds['remote_msat'])}"
+  else:
+    return "0 / 0"
 
 def ischannelbalanced(id):
   funds  = peerchannelbalance(id)
@@ -85,6 +97,10 @@ def selfpay(id, amt):
   bounce_route = f'{{"id":"{id}","channel":"125x1x1","direction":"0","msatoshi":"10001","amount_msat":"10001msat","delay":"15","style": "tlv"}}'
   invoice = lcli("invoice", f"{amt} self_balance3 self")
   return lcli("sendpay", f"route='[{bounce_route},{self_route}]' payment_hash='{invoice['payment_hash']}'")
+
+def msat_to_sat(string):
+  value = int(string.replace('msat', ''))
+  return value / 1000 if value else 0
 
 def main():
   parser = ArgumentParser(description=f"Advanced {CLI_BINARY} utility")

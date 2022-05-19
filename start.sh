@@ -5,18 +5,17 @@
 # Environment
 ###############################################################################
 
-DEFAULT_NAME="regtest"
-DEFAULT_TAG="dev"
+DEFAULT_DOMAIN="regtest"
 ENV_PATH=".env"
 TERM_OUT="/dev/null"
 ARGS_STR=""
 
 ###############################################################################
-# Methods
+# Usage
 ###############################################################################
 
 usage() {
-  printf "
+  printf %b\\n "
 Usage: $(basename $0) [ OPTIONS ] TAG
 
 Launch a docker container for bitcoin / lightning development.
@@ -47,6 +46,10 @@ please visit the github page: https://github.com:cmdruid/regtest-node
 "
 }
 
+###############################################################################
+# Methods
+###############################################################################
+
 add_arg() {
   [ -n "$1" ] && ARGS_STR="$ARGS_STR -e $1"
 }
@@ -54,8 +57,7 @@ add_arg() {
 read_env() {
   [ -n "$1" ] && \
   while read line || [ -n "$line" ]; do
-    ## Check if line is commented first.
-    if ! printf $line | egrep -q '^ *#'; then printf "-e $line "; fi
+    if ! printf %s "$line" | egrep -q '^ *#'; then printf %s "-e ${line} "; fi
   done < "$1"
 }
 
@@ -73,6 +75,18 @@ volume_exists() {
 
 network_exists() {
   docker network ls | grep $NET_NAME > /dev/null 2>&1
+}
+
+check_binaries() {
+  if [ ! -d "build/out" ]; then mkdir -p build/out; fi
+  for file in build/dockerfiles/*; do
+    name="$(basename -s .dockerfile $file)"
+    if [ -z "$(ls build/out | grep $name)" ]; then 
+      printf "Binary for $name is missing! Building from source ..."
+      build/build.sh $file 
+    fi
+  done
+  [ -n "$COMPILE" ] && echo "All binary files are compiled and ready!"
 }
 
 build_image() {
@@ -112,60 +126,6 @@ wipe_data() {
 ###############################################################################
 
 main() {
-  ## Set run mode of container.
-  if [ -n "$DEVMODE" ]; then
-    DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
-    RUN_MODE="interactive"
-    RUN_FLAGS="-it --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
-  else
-    RUN_MODE="detached"
-    RUN_FLAGS="-d --restart unless-stopped"
-  fi
-
-  ## Create peers path if missing.
-  if [ ! -d "share" ]; then mkdir share; fi
-
-  ## Create build/out path if missing.
-  if [ ! -d "build/out" ]; then mkdir -p build/out; fi
-
-  ## For each dockerfile, check if binary is present.
-  for file in build/dockerfiles/*; do
-    name="$(basename -s .dockerfile $file)"
-    if [ -z "$(ls build/out | grep $name)" ]; then 
-      printf "Binary for $name is missing! Building from source ..."
-      build/build.sh $file 
-    fi
-  done
-
-  ## If rebuild is declared, remove existing image.
-  if image_exists && [ -n "$REBUILD" ]; then remove_image; fi
-
-  ## If no existing image is present, build it.
-  if ! image_exists || [ -n "$BUILD" ]; then build_image; fi
-
-  ## If no existing network exists, create it.
-  if ! network_exists; then create_network; fi
-
-  ## If additional mount points are specified, build a mount string.
-  if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
-    if [ -z "$(echo $point | grep -E '^/')" ]; then source="$(pwd)/"; fi
-    MOUNTS="$MOUNTS --mount type=bind,source=$source$point,target=/root/$point"
-  done; fi
-
-  ## If additional ports are specified, build a port string.
-  if [ -n "$ADD_PORTS" ]; then for port in `echo $ADD_PORTS | tr ',' ' '`; do
-    PORTS="$PORTS -p $port:$port"
-  done; fi
-
-  ## Convert environment file into string.
-  if [ -e "$ENV_PATH" ]; then ENV_STR=`read_env $ENV_PATH`; fi
-
-  ## Make sure to stop any existing container.
-  if container_exists; then stop_container; fi
-
-  ## Purge data volume if flagged.
-  if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
-
   ## Start container in runtime configuration.
   echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
   docker run \
@@ -187,33 +147,84 @@ set -E
 for arg in "$@"; do
   case $arg in
     -h|--help)         usage;                            exit 0 ;;
+    -C|--compile)      COMPILE=1 check_binaries;         exit 0 ;;
     -b|--build)        BUILD=1;                          shift  ;;
     -r|--rebuild)      REBUILD=1;                        shift  ;;
     -w|--wipe)         WIPE=1;                           shift  ;;
     -i|--interactive)  DEVMODE=1;                        shift  ;;
     -v|--verbose)      TERM_OUT="/dev/tty";              shift  ;;
-    -n|--name)         NAME="$2";                        shift 2;;
+    -d=*|--domain=*)   DOMAIN=${arg#*=};                 shift  ;;
     -m=*|--mount=*)    ADD_MOUNTS=${arg#*=}              shift  ;;
     -P=*|--ports=*)    ADD_PORTS=${arg#*=}               shift  ;;
-    -p=*|--peers=*)    add_arg "ADD_PEERS=${arg#*=}";    shift  ;;
-    -c=*|--channels=*) add_arg "ADD_CHANS=${arg#*=}";    shift  ;;
+    -p=*|--peers=*)    add_arg "PEER_LIST=${arg#*=}";    shift  ;;
+    -c=*|--channels=*) add_arg "CHAN_LIST=${arg#*=}";    shift  ;;
     -f=*|--faucet=*)   add_arg "USE_FAUCET=${arg#*=}";   shift  ;;
+    --mine)            add_arg "MINE_NODE=DEFAULT";      shift  ;;
+    --mine=*)          add_arg "MINE_NODE=${arg#*=}";    shift  ;;
     --seed)            add_arg "SEED_NODE=1";            shift  ;;
-    --tor)             add_arg "TOR_ENABLED=1";          shift  ;;
+    --seed=*)          add_arg "SEED_NODE=${arg#*=}";    shift  ;;
+    --tor)             add_arg "TOR_NODE=1";             shift  ;;
   esac
 done
 
+## If no name argument provied, display help and exit.
+if [ -z "$1" ]; then usage && exit 0; else TAG="$1"; fi
+
 ## Set default variables.
-if [ -z "$NAME" ]; then NAME="$DEFAULT_NAME"; fi
-if [ -z "$1" ];    then TAG="$DEFAULT_TAG"; else TAG="$1"; fi
+if [ -z "$DOMAIN" ]; then DOMAIN="$DEFAULT_DOMAIN"; fi
 
 ## Define naming scheme.
-IMG_NAME="$NAME.img"
-NET_NAME="$NAME.net"
-SRV_NAME="$TAG.$NAME.node"
-DAT_NAME="$TAG.$NAME.data"
+IMG_NAME="$DOMAIN.img"
+NET_NAME="$DOMAIN.net"
+SRV_NAME="$TAG.$DOMAIN.node"
+DAT_NAME="$TAG.$DOMAIN.data"
 
-## Call main script.
+## Check that required binaries exist.
+check_binaries()
+
+## If rebuild is declared, remove existing image.
+if image_exists && [ -n "$REBUILD" ]; then remove_image; fi
+
+## If no existing image is present, build it.
+if ! image_exists || [ -n "$BUILD" ]; then build_image; fi
+
+## Set run mode of container.
+if [ -n "$DEVMODE" ]; then
+  DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
+  RUN_MODE="interactive"
+  RUN_FLAGS="-it --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+else
+  RUN_MODE="detached"
+  RUN_FLAGS="-d --restart unless-stopped"
+fi
+
+## Create peers path if missing.
+if [ ! -d "share" ]; then mkdir share; fi
+
+## If no existing network exists, create it.
+if ! network_exists; then create_network; fi
+
+## If additional mount points are specified, build a mount string.
+if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
+  if [ -z "$(echo $point | grep -E '^/')" ]; then source="$(pwd)/"; fi
+  MOUNTS="$MOUNTS --mount type=bind,source=$source$point,target=/root/$point"
+done; fi
+
+## If additional ports are specified, build a port string.
+if [ -n "$ADD_PORTS" ]; then for port in `echo $ADD_PORTS | tr ',' ' '`; do
+  PORTS="$PORTS -p $port:$port"
+done; fi
+
+## Convert environment file into string.
+if [ -e "$ENV_PATH" ]; then ENV_STR=`read_env $ENV_PATH`; fi
+
+## Make sure to stop any existing container.
+if container_exists; then stop_container; fi
+
+## Purge data volume if flagged.
+if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
+
+## Call main container script.
 main
 
 ## If container is detached, connect to it.
