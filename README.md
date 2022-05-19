@@ -31,11 +31,11 @@ git clone "this repository url" && cd regtest-node
 ```
 Each node is designed to automatically connect with peers (*on bitcoin and lightning*), request funds from a designated node, open channels, and auto-balance those channels. All argument flags are optional. The final argument will designate your node with a name tag.
 
-Use the `--mine` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate new blocks up to a certain height. Block rewards require 100 blocks to mature, so the default height is 150.
+Use the `--mine` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require 100 blocks to mature, so the default height is 150.
 
-Your miner is also configured to watch the mempool, then auto-mine a block when it sees unconfirmed transactions. The default poll time is 2 seconds, in order to process transactions quickly. If you wish to deploy multiple miners, you may want to use a longer poll time in order to avoid chain splits.
+By default, Your miner is configured to watch the mempool, then auto-mine blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds so that transactionswill confirm quickly. If you wish to deploy multiple miners, you should use longer timings in order to avoid chain splits.
 
-Your miner can be configured by specifying a configuration string, in the format of `--mine=polltime,intervaltime,fuzzamount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
+The format for configuring your mining node is `--mine=polltime,intervaltime,fuzzamount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
 
 The `--peers` and `--channels` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and balance their channels accordingly!
 
