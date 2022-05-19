@@ -144,7 +144,7 @@ address="$1"
 
 ## Reset log file.
 if [ -e "$LOG_FILE" ]; then
-  printf %b\\n "Polling: ${POLLING}s, Interval: ${INTERVAL}s, Fuzz: ${FUZZ}s, Address: $address" > $LOG_FILE;
+  printf %b\\n "Polling: ${POLLING}s, Interval: ${INTERVAL}s, Fuzz: ${FUZZ}s, Address: $address" > $LOG_FILE
 fi
 
 ## Start main loop.

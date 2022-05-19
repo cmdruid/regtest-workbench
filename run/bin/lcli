@@ -67,13 +67,12 @@ def confirmedchannelcount(id):
   return len(getpeerchannels(id))
 
 def peerchannelbalance(id):
-  channels = [ ch["funding"] for ch in getpeerchannels(id) if ch["state"] == "CHANNELD_NORMAL" ]
-   
+  channels = [ ch for ch in getpeerchannels(id) if ch["state"] == "CHANNELD_NORMAL" ]
   if len(channels):
     funds = channels[0]
-    return f"{msat_to_sat(funds['local_msat'])} / {msat_to_sat(funds['remote_msat'])}"
+    return f"{msat_to_sat(funds['spendable_msatoshi'])} / {msat_to_sat(funds['receivable_msatoshi'])}"
   else:
-    return "0 / 0"
+    return 0
 
 def ischannelbalanced(id):
   funds  = peerchannelbalance(id)
@@ -98,9 +97,10 @@ def selfpay(id, amt):
   invoice = lcli("invoice", f"{amt} self_balance3 self")
   return lcli("sendpay", f"route='[{bounce_route},{self_route}]' payment_hash='{invoice['payment_hash']}'")
 
-def msat_to_sat(string):
-  value = int(string.replace('msat', ''))
-  return value / 1000 if value else 0
+def msat_to_sat(val):
+  if type(val) is str:
+    val = int(string.replace('msat', ''))
+  return val / 1000 if val else 0
 
 def main():
   parser = ArgumentParser(description=f"Advanced {CLI_BINARY} utility")

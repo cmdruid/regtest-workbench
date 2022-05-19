@@ -206,8 +206,10 @@ if ! network_exists; then create_network; fi
 
 ## If additional mount points are specified, build a mount string.
 if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
-  if [ -z "$(echo $point | grep -E '^/')" ]; then source="$(pwd)/"; fi
-  MOUNTS="$MOUNTS --mount type=bind,source=$source$point,target=/root/$point"
+  src=`printf $point | awk -F ':' '{ print $1 }'`
+  dest=`printf $point | awk -F ':' '{ print $2 }'`
+  if [ -z "$(echo $point | grep -E '^/')" ]; then prefix="$(pwd)/"; fi
+  MOUNTS="$MOUNTS --mount type=bind,source=$prefix$src,target=$dest"
 done; fi
 
 ## If additional ports are specified, build a port string.

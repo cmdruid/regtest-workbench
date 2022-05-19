@@ -8,7 +8,7 @@ set -E
 ###############################################################################
 
 DATA_PATH="/data/lightning"
-PEER_PATH="$SHARE_PATH/$HOSTNAME"
+PEER_PATH="/share/$HOSTNAME"
 
 KEYS_FILE="$DATA_PATH/sparko.keys"
 LOGIN_FILE="$DATA_PATH/sparko.login"

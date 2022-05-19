@@ -52,9 +52,19 @@ is_node_connected() {
   [ -n "$1" ] && [ -n "$(lightning-cli listpeers | jgrep id | grep $1)" ]
 }
 
+is_channel_confirmed() {
+  [ -n "$1" ] && lcli peerchannelcount "$1"
+}
+
+is_channel_funded() {
+  [ -n "$1" ] && [ "$(lcli peerchannelbalance "$1")" != "0" ]
+}
+
 ###############################################################################
 # Script
 ###############################################################################
+
+if [ "$?" -ne 0 ]; then exit 1; fi
 
 templ banner "Funding Configuration"
 
@@ -86,12 +96,12 @@ fi
 if [ -n "$USE_FAUCET" ]; then
 
   ## Search for peer file in peers path.
-  printf "Searching for connection settings from $USE_FAUCET"
+  printf "Searching for faucet settings from $USE_FAUCET"
   config=`find "$SHARE_PATH/$USE_FAUCET"* -name bitcoin-peer.conf`
 
   ## Exit out if peer file is not found.
   if [ ! -e "$config" ]; then templ fail && continue; fi
-  templ ok
+  templ ok && echo
 
   ## Parse current peering info.
   onion_host=`cat $config | kgrep ONION_NAME`
@@ -103,9 +113,7 @@ if [ -n "$USE_FAUCET" ]; then
     rpc_port="$RPC_SOCK"
     remote_port=`cat $config | kgrep RPC_PORT`
     if [ -z "$(onionsock -c $RPC_SOCK)" ]; then
-      printf "Tor configuration detected, opening socket"
       onionsock -p $RPC_SOCK "$onion_host:$remote_port"
-      templ ok
     fi
   else
     peer_host="$(cat $config | kgrep HOST_NAME)"
@@ -119,6 +127,7 @@ if [ -n "$USE_FAUCET" ]; then
   if [ -z "$FAUCET_WALLET" ]; then 
     printf "Faucet configuration failed!" && templ fail
   else printf "Connected to faucet \"$FAUCET_WALLET\" wallet" && templ conn; fi
+  echo
 fi
 
 ## Check if bitcoin wallet has sufficient balance.
@@ -193,16 +202,17 @@ if [ -n "$CHAN_LIST" ]; then
   
     ## If valid peer, then connect to node.
     if is_node_connected $node_id; then
-      channel_count=`lcli peerchannelcount "$node_id"`
-      if [ "$((channel_count))" -eq 0 ]; then
+      if ! is_channel_confirmed; then
         printf "| Opening channel with $peer for $sat_amt sats."
-        printf ":\n| Waiting for channel to confirm ."
+        printf "\n| Waiting for channel to confirm ."
         lightning-cli fundchannel $node_id $sat_amt > /dev/null 2>&1
-        while ! lcli peerchannelcount "$node_id" > /dev/null 2>&1; do sleep 1 && printf "."; done
+        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1 && printf "."; done
         templ ok
       fi
       printf "| Channel balance for $peer"
       templ brkt "$(lcli peerchannelbalance $node_id)"
+    else
+      printf "| No connection to $peer!" && templ fail
     fi
   done
 fi

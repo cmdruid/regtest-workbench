@@ -98,6 +98,8 @@ fprint() {
 # Script
 ###############################################################################
 
+if [ "$?" -ne 0 ]; then exit 1; fi
+
 templ banner "Bitcoin Core Configuration"
 
 ## Configure default values.
@@ -180,7 +182,7 @@ if [ -n "$PEER_LIST" ]; then
 
     ## If valid peer, then connect to node.
     if ! is_peer_connected $peer_host; then
-      printf "Peering to bitcoin node $peer_host ... "
+      printf "%.60s" "Peering to bitcoin node $peer_host"
       bitcoin-cli addnode "$peer_host" add
       templ conn
     fi
@@ -217,8 +219,15 @@ fi
 # Blockchain Config
 ###############################################################################
 
-## Wait for blockchain to sync with peers.
+## Check if we are connected to peers.
 peer_connections=`bitcoin-cli getconnectioncount`
+echo "Peer connections: $peer_connections"
+if [ -n "$PEER_LIST" ] && [ "$((peer_connections))" -eq 0 ]; then 
+  printf "Failed to connect to peers!"
+  templ fail
+fi
+
+## Wait for blockchain to sync with peers.
 if [ "$((peer_connections))" -ne 0 ] && get_ibd_state; then
   printf "Waiting (up to ${BLOCK_SYNC_TIMEOUT}s) for blockchain to sync with peers ."
   ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_SYNC_TIMEOUT
@@ -249,4 +258,10 @@ if [ -n "$MINE_NODE" ]; then
   echo && regminer $schedule $address
 fi
 
-printf %s "Blockchain $(bitcoin-cli -getinfo | grep Verification)"; templ ok
+chainstatus="$(bitcoin-cli -getinfo | grep 100.0000%)"
+if [ -n "$chainstatus" ]; then 
+  printf %s "Blockchain $chainstatus" && templ ok
+else 
+  printf "Failed to sync blockchain with network!" && templ fail && exit 1
+fi
+

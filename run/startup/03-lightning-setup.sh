@@ -39,6 +39,8 @@ fprint() {
 # Script
 ###############################################################################
 
+if [ "$?" -ne 0 ]; then exit 1; fi
+
 templ banner "Lightning Core Configuration"
 
 if [ -z "$(pgrep bitcoind)" ]; then echo "Bitcoind is not running!" && exit 1; fi

@@ -142,9 +142,9 @@ if [ -z "$PORT" ]; then PORT="$DEST_PORT"; fi
 kill_port $PORT
 
 ## Run main script.
-printf "Setting up socat tunnel ."
-main && sleep $WAIT_TIME & while [ -e /proc/$! ]; do sleep 0.5 && printf "."; done;
-printf %b\\n " done."
+main && sleep $WAIT_TIME &
 
 ## Print success message.
-printf %b\\n "Socat tunnel with pid $! created on port $PORT and redirecting to:\nhttp://$DEST_HOST:$DEST_PORT"
+printf "Opening socat tunnel with pid $(templ hlight "$!")" && templ ok
+printf "$(fgc 215 "|") Created on port $PORT and redirecting to:\n"
+printf "$(fgc 215 "|") http://$DEST_HOST:$DEST_PORT\n\n"

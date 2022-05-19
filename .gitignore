@@ -1,14 +1,15 @@
 node_modules
+/contrib/examples/.*
 /doc
 /build/out/*
 /run/bin/.*
 /run/config/.*
 /run/lib/.*
-/run/plugins/disabled
+/run/plugins/.*
 /run/pylib
 /run/startup/*.skip
 /run/plugins/.*
 /share
+/TODO*
 sample-compose.yml
 .env
-/TODO.md
