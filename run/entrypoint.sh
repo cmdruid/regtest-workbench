@@ -52,9 +52,8 @@ else
 fi
 
 ## Setup container for detatched mode.
-if [ -z "$DEVMODE" ]; then
+if [ -z "$DEVMODE" ] || [ "$DEVMODE" -eq 0 ]; then
   trap 'true' SIGTERM
-  .$WORK_PATH/lib/tail-logs.sh &
-  wait $!
+  sh -c $WORK_PATH/lib/util/tail-logs.sh
   cleanup
 fi
