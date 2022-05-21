@@ -12,8 +12,8 @@ sleep $delay
 IFS=';' read -r row col
 stty $oldstty
 
-row=$(expr $(expr substr $row 3 99) - 1) # Strip leading escape off
-col=$(expr ${col%R} - 1)                 # Strip trailing 'R' off
+[ -n "$row" ] && row=$(expr $(expr substr $row 3 99) - 1) || row=0
+[ -n "$col" ] && col=$(expr ${col%R} - 1) || col=0
 
 ## We are returning x-coordinate only.
 printf "$col"
