@@ -17,7 +17,7 @@ get_offset() {
   pos=`xpos`
   chlen=${#1}
   total="$((OFS - chlen - pos))"
-  [ "$total" -gt 0 ] && printf $total || printf 0
+  [ "$((pos))" -gt 0 ] && [ "$((total))" -gt 0 ] && printf $total || printf 0
 }
 
 banner() {
