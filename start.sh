@@ -9,6 +9,7 @@ DEFAULT_DOMAIN="regtest"
 ENV_PATH=".env"
 TERM_OUT="/dev/null"
 ARGS_STR=""
+DOCKER_BUILDKIT=1
 
 ###############################################################################
 # Usage
@@ -128,7 +129,7 @@ wipe_data() {
 main() {
   ## Start container in runtime configuration.
   echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
-  docker run \
+  docker run -t \
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
@@ -192,7 +193,7 @@ if ! image_exists || [ -n "$BUILD" ]; then build_image; fi
 if [ -n "$DEVMODE" ]; then
   DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
   RUN_MODE="interactive"
-  RUN_FLAGS="-it --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+  RUN_FLAGS="-i --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
   RUN_MODE="detached"
   RUN_FLAGS="-d --restart unless-stopped"
@@ -231,11 +232,13 @@ main
 
 ## If container is detached, connect to it.
 if [ "$RUN_MODE" = "detached" ]; then
-  docker logs -f "$SRV_NAME"
+echo "================ TEST ======================="
+  #docker logs -f "$SRV_NAME"
   printf "
 =============================================================================
   Initialization complete. Use below command to access container:
   docker exec -it "$SRV_NAME" bash
 =============================================================================
 "
+  docker exec -it $SRV_NAME bash
 fi
