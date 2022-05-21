@@ -10,7 +10,7 @@ set -E
 LOGS="
   /var/log/tor/notice.log
   /var/log/bitcoin/debug.log
-  /var/log/lightningd.log
+  /var/log/lightning/lightningd.log
   /var/log/cl-rest.log
 "
 
@@ -18,16 +18,12 @@ LOGS="
 # Methods
 ###############################################################################
 
-log_string() {
-  echo "$(
-    for log in "$LOGS"; do
-      if [ -e "$log" ]; then echo $log; fi
-    done | tr '\n' ' '
-  )"
+check_logfile() {
+  for log in $LOGS; do if [ -e "$log" ]; then echo $log; fi; done 
 }
 
 ###############################################################################
 # Script
 ###############################################################################
-
-tail -f `log_string`
+echo `check_logfile`
+tail -f `check_logfile | tr '\n' ' '`
