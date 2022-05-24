@@ -23,9 +23,15 @@ cleanup() {
   printf %b\\n "done." && exit 0
 }
 
+finish() {
+  if [ "$?" -ne 0 ]; then templ fail && exit 1; fi
+}
+
 ###############################################################################
 # Script
 ###############################################################################
+
+trap finish EXIT
 
 ## Make sure share path exists.
 share_host="$SHARE_PATH/$HOSTNAME"
@@ -47,8 +53,9 @@ else
   ip_addr=`ip -f inet addr show eth0 | grep -Po 'inet \K[\d.]+'`
   user="$(cat /data/lightning/sparko.login | kgrep USERNAME)"
   pass="$(cat /data/lightning/sparko.login | kgrep PASSWORD)"
-  printf %b\\n "Wallet Link: $(fgc 033 "http://$ip_addr:9737")"
-  printf %b\\n "Login: $(fgc 255 "$user") // $(fgc 255 "$pass")"
+  printf "Node ID: $(lightning-cli getinfo | jgrep id)\n"
+  printf "Wallet Link: $(fgc 033 "http://$ip_addr:9737")\n"
+  printf "Login: $(fgc 255 "$user") // $(fgc 255 "$pass")\n"
 fi
 
 ## Setup container for detatched mode.
