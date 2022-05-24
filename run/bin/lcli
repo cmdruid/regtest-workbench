@@ -1,43 +1,39 @@
 #!/usr/bin/env python3
-## Configure lightning channels for connected peers.
+## Extention of lightning-cli interface.
 
 from shlex    import split
 from shutil   import which
 from argparse import ArgumentParser
+
 import subprocess
 import json
 
 CLI_BINARY = "lightning-cli"
 VERBOSE = False
 
-## Import data from listpeers, listfunds.
-## Check if funds are available (if not, call for more funds).
-## Then check for peers which are connected.
-## For connected peers, check if channel exists (and their state).
-## If no channel exists, create new channel (and balance).
-## If channel does exist, check state and balance (and rebalance).
-
 def lcli(cmd, args=''):
-  ## If binary does not exist, raise exception.
   if which(CLI_BINARY) is None:
+    ## If binary does not exist, raise exception.
     raise Exception(f"{CLI_BINARY} not found! Check if it is installed in your PATH.")
-  ## Split argument list and use it to run a new process.
+  
   arglist = split(f"{CLI_BINARY} {cmd} {args}")
   process = subprocess.run(arglist, capture_output=True)
-  ## If verbose flag is set, print the completed process.
+
   if VERBOSE:
+    ## If verbose, print the process object.
     print(process)
-  ## If process does not return 0, raise an exception and return error.
   if process.returncode != 0:
+    ## If return code not 0, raise an exception.
     errStr = f"{process.stderr.decode('ascii')}"
     stdStr = json.dumps(json.loads(process.stdout), indent=2)
     raise Exception(f"Error returned code {process.returncode}: {errStr}\n{stdStr}")
-  ## Return standard output as json object.
   return json.loads(process.stdout)
+
 
 def getbalance():
   outputs = lcli("listfunds")["outputs"]
   return sum([ output["value"] for output in outputs if output["status"] == "confirmed" ])
+
 
 def getpeers(id=None):
   peers = lcli("listpeers")["peers"]
@@ -45,29 +41,38 @@ def getpeers(id=None):
     return next((x for x in peers if x["id"] in id), None)
   return peers
 
+
 def getpeerlist():
   return [ peer["id"] for peer in getpeers() ]
+
 
 def getconnectedpeers():
   return [ peer["id"] for peer in getpeers() if peer["connected"] ]
 
+
 def getchannels():
   return lcli("listfunds")["channels"]
+
 
 def getchannelstates(states):
   return [ channel for channel in getchannels() if channel["state"] in states ]
 
+
 def getpeerchannels(id, states=[ "CHANNELD_NORMAL" ]):
   return [ channel for channel in getpeers(id)["channels"] if channel["state"] in states ]
+
 
 def peerchannelcount(id):
   return len(getpeerchannels(id))
 
+
 def getconfirmedchannels(id):
   return getpeers(id)["channels"]
 
+
 def confirmedchannelcount(id):
   return len(getpeerchannels(id))
+
 
 def peerchannelbalance(id):
   channels = [ ch for ch in getpeerchannels(id) if ch["state"] == "CHANNELD_NORMAL" ]
@@ -77,6 +82,7 @@ def peerchannelbalance(id):
   else:
     return 0
 
+
 def ischannelbalanced(id):
   funds  = peerchannelbalance(id)
   local  = int(funds["local_msat"].replace('msat', ''))
@@ -85,25 +91,12 @@ def ischannelbalanced(id):
     return False
   return abs(local / remote) > 0.25
 
-def dualfund(id, amt):
-  self_id = lcli("getinfo")["id"]
-  inbound_str = f'{{"id":"{self_id}","amount":"{amt}"}}'
-  outbound_str = f'{{"id":"{id}","amount":"{amt}"}}'
-  dest_str = f"destinations='[{inbound_str},{outbound_str}]'"
-  print(dest_str)
-  return lcli("multifundchannel", dest_str)
-
-def selfpay(id, amt):
-  self_id = lcli("getinfo")["id"]
-  self_route = f'{{"id":"{id}","channel":"125x1x1","direction":"0","msatoshi":"10000","amount_msat":"10000msat","delay":"9","style": "tlv"}}'
-  bounce_route = f'{{"id":"{id}","channel":"125x1x1","direction":"0","msatoshi":"10001","amount_msat":"10001msat","delay":"15","style": "tlv"}}'
-  invoice = lcli("invoice", f"{amt} self_balance3 self")
-  return lcli("sendpay", f"route='[{bounce_route},{self_route}]' payment_hash='{invoice['payment_hash']}'")
 
 def msat_to_sat(val):
   if type(val) is str:
     val = int(string.replace('msat', ''))
   return val / 1000 if val else 0
+
 
 def main():
   parser = ArgumentParser(description=f"Advanced {CLI_BINARY} utility")
@@ -112,25 +105,31 @@ def main():
   parser.add_argument('-v', '--verbose', action='store_true', help="Use verbose output.")
   args = parser.parse_args()
 
-  VERBOSE = args.verbose
+  VERBOSE   = args.verbose
+  command   = args.command
+  arguments = args.arguments
 
   try:
-    ## If a command is given that does not exist, raise exception.
-    if args.command not in globals():
-      raise Exception("That command does not exist!")
-    ## Call the named method, with or without arguments.
-    if args.arguments:
-      result = globals()[args.command](*args.arguments)
+    if command not in globals():
+      ## If a command is does not exist, run it directly.
+      result = lcli(command, arguments)
+    elif arguments:
+      ## Call the named method with arguments.
+      result = globals()[command](*arguments)
     else:
-      result = globals()[args.command]()
-    ## If result is None, return nothing.
+      ## Call the named method without arguments.
+      result = globals()[command]()
+
     if result is None:
+      ## If result is None, return nothing.
       return
-    ## If output is a list, format for terminal output.
     elif type(result) is list:
+      ## If output is a list, format for terminal output.
       if len(result) < 1:
+        ## If list is empty, return nothing.
         return
       if type(result[0]) is str:
+        ## If this is a list of strings, use shell-friendly format.
         print('\n'.join(result))
       else:
         print(json.dumps(result, indent=2))

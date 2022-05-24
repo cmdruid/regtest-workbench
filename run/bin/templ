@@ -7,13 +7,14 @@ set -E
 # Environment
 ###############################################################################
 
-OFS=85
+OFS=85    ## Global offset.
 
 ###############################################################################
 # Methods
 ###############################################################################
 
 get_offset() {
+  ## Get the offset between the curser and the "edge" of terminal display.
   pos=`xpos`
   chlen=${#1}
   total="$((OFS - chlen - pos))"
@@ -21,6 +22,7 @@ get_offset() {
 }
 
 banner() {
+  ## Creates a colorful banner.
   [ -n "$2" ] && linecolor="$2" || linecolor="214"
   [ -n "$3" ] && textcolor="$3" || textcolor="255"
   printf %b\\n "
@@ -31,6 +33,7 @@ $(fgc $linecolor ===============================================================
 }
 
 hlight() {
+  ## Highlights text with foreground and background colors.
   [ -n "$2" ] && fgcolor="$2" || fgcolor="252"
   [ -n "$3" ] && bgcolor="$3" || bgcolor="055"
   text="$(fgc $fgcolor " $1 ")"
@@ -38,6 +41,7 @@ hlight() {
 }
 
 brkt() {
+  ## Encloses text within colorful brackets, and aligns right.
   [ -n "$2" ] && txtcolor="$2" || txtcolor="050"
   [ -n "$3" ] && brkcolor="$3" || brkcolor="255"
   LB=`fgc $brkcolor "["`
@@ -62,6 +66,5 @@ for arg in "$@"; do
     brkt)   shift; brkt "$1" "$2" "$3";      exit 0;;
     banner) shift; banner "$1" "$2" "$3";    exit 0;;
     hlight) shift; hlight "$1" "$2" "$3";    exit 0;;
-    ddd) exit 0;;
   esac
 done

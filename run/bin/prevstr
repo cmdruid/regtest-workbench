@@ -42,15 +42,13 @@ for arg in "$@"; do
   esac
 done
 
-if [ -z "$1" ]; then usage; exit; fi
-if ! isnum $CUT_LEN; then usage; exit; fi
+if [ -z "$1" ] || ! isnum $CUT_LEN; then usage; exit; fi
 
 chlen="${#1}"
 offset="$((chlen-CUT_LEN+1))"
 
 if [ "$((offset))" -lt 2 ] || [ "$((chlen))" -lt "$((offset))" ]; then 
-  printf %b\\n "$1"
-  exit 0
+  printf %b\\n "$1" && exit 0
 fi
 
 prefix=`printf $1 | cut -c 1-$CUT_LEN`

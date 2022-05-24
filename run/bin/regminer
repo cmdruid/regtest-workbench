@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 ## Simulates a miner on your blockchain.
 
 set -E

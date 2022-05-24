@@ -1,24 +1,20 @@
-#!/bin/sh
+#!/usr/bin/env sh
 ## Takes an input of key=value pair, and outputs the value.
 
 set -e
 
 usage() {
   printf "
-Usage: kgrep [KEY]
+Usage: $(basename $0) KEY
 Takes an input from STDIN that contains key=value pairs, and outputs the value.
 
 Examples:
-  cat \"\$keys\" | kgrep
-"
+  printf \"key=val\" | kgrep key
+  \n"
 }
 
 ## If argument empty or help, display help message.
-if [ "$1" = "--help" ]; then usage && exit 0; fi
+if [ -z "$1" ] || [ "$1" = "--help" ]; then usage && exit 0; fi
 
-## Grep the key from the JSON input, then sanitize.
-if [ -n "$1" ]; then 
-  echo `grep $1 | awk -F '=' '{print $2}'` < /dev/stdin
-else 
-  echo `awk -F '=' '{print $2}' | head -n 1` < /dev/stdin
-fi
+## Grep the key from the keypair input.
+grep "$1" | awk -F '=' '{ print $2 }' < /dev/stdin
