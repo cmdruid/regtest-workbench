@@ -128,9 +128,9 @@ if [ -n "$USE_FAUCET" ]; then
   FAUCET_WALLET=`bitcoin-cli $FAUCET_CONF listwallets | tr -d "\" " | tail -n +2 | head -n 1`
 
   if [ -z "$FAUCET_WALLET" ]; then 
-    printf "$(fgc 215 "|") Faucet configuration failed!" && templ fail
+    printf "$IND Faucet configuration failed!" && templ fail
   else
-    printf "$(fgc 215 "|") Connected to faucet \"$FAUCET_WALLET\" wallet." && templ conn 
+    printf "$IND Connected to faucet \"$FAUCET_WALLET\" wallet." && templ conn 
   fi
   echo
 fi
@@ -141,31 +141,31 @@ btc_balance=`get_btc_balance`
 
 ## If bitcoin balance is low, get funds from faucet.
 if ! greater_than $btc_balance $MIN_FUNDS; then
-  echo && printf "$(fgc 215 "|") Bitcoin funds are low! Searching for funding ...\n"
+  echo && printf "$IND Bitcoin funds are low! Searching for funding ...\n"
   if [ -n "$MINE_NODE" ]; then
-    printf "$(fgc 215 "|") Mining 5 blocks for funds ...\n"
+    printf "$IND Mining 5 blocks for funds ...\n"
     bitcoin-cli generatetoaddress 5 $btc_address > /dev/null 2>&1
     if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-      printf "$(fgc 215 "|") Block height too low! Mining 150 more blocks ...\n"
+      printf "$IND Block height too low! Mining 150 more blocks ...\n"
       bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
       if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-        printf "$(fgc 215 "|") We are still broke! Something is wrong!" && templ fail && exit 1
+        printf "$IND We are still broke! Something is wrong!" && templ fail && exit 1
       fi
     fi
   elif [ -n "$USE_FAUCET" ] && [ -n "$FAUCET_WALLET" ]; then
-    printf "$(fgc 215 "|") Checking faucet ...\n"
+    printf "$IND Checking faucet ...\n"
     if ! greater_than $(faucet_cli getbalance) $MIN_FUNDS; then 
-      printf "$(fgc 215 "|") Faucet is broke!" && templ fail
+      printf "$IND Faucet is broke!" && templ fail
     else
-      printf "$(fgc 215 "|") Funding address: $btc_address\n"
+      printf "$IND Funding address: $btc_address\n"
       faucet_cli sendtoaddress $btc_address 10 > /dev/null 2>&1
-      printf "$(fgc 215 "|") Waiting for funds to clear ."
+      printf "$IND Waiting for funds to clear ."
       while ! greater_than $(get_btc_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
     fi
   else
-    printf "$(fgc 215 "|") No source for funds!" && templ fail && exit 1
+    printf "$IND No source for funds!" && templ fail && exit 1
   fi
-  printf "$(fgc 215 "|") New Bitcoin balance:" && templ brkt "$(get_btc_balance) BTC."
+  printf "$IND New Bitcoin balance:" && templ brkt "$(get_btc_balance) BTC."
 else 
   templ brkt "$btc_balance BTC."
 fi; echo
@@ -176,16 +176,16 @@ cln_balance=`get_cln_balance`
 
 ## If lightning balance is low, transfer funds from main wallet.
 if ! greater_than $cln_balance $MIN_FUNDS; then
-  echo && printf "$(fgc 215 "|") Lightning funds are low! Searching for funding ...\n"
+  echo && printf "$IND Lightning funds are low! Searching for funding ...\n"
   if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-    printf "$(fgc 215 "|") Your bitcoin wallet is broke!" && templ fail && exit 1
+    printf "$IND Your bitcoin wallet is broke!" && templ fail && exit 1
   else
-    printf "$(fgc 215 "|") Funding address: $cln_address\n"
+    printf "$IND Funding address: $cln_address\n"
     rounded_funds=`get_btc_balance | awk -F '.' '{ print $1}'`
     bitcoin-cli sendtoaddress $cln_address $((rounded_funds / 4)) > /dev/null 2>&1
-    printf "$(fgc 215 "|") Waiting for funds to clear ."
-    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
-    printf "$(fgc 215 "|") New Lightning balance:" && templ brkt "$(get_cln_balance) BTC."
+    printf "$IND Waiting for funds to clear ."
+    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1.5 && printf "."; done; templ ok
+    printf "$IND New Lightning balance:" && templ brkt "$(get_cln_balance) BTC."
   fi
 else
   templ brkt "$cln_balance BTC."
@@ -205,19 +205,19 @@ if [ -n "$CHAN_LIST" ]; then
 
     ## Parse current peering info.
     node_id=`cat $config | kgrep NODE_ID`
-    printf "$(fgc 215 "|") Node ID: $node_id\n"
+    printf "$IND Node ID: $node_id\n"
   
     ## If valid peer, then connect to node.
     if is_node_connected $node_id; then
       if ! is_channel_confirmed $node_id; then
-        printf "$(fgc 215 "|") Opening channel with $peer for $sat_amt sats.\n"
-        printf "$(fgc 215 "|") Waiting for channel to confirm ."
+        printf "$IND Opening channel with $peer for $sat_amt sats.\n"
+        printf "$IND Waiting for channel to confirm ."
         lightning-cli fundchannel $node_id $sat_amt > /dev/null 2>&1
-        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1 && printf "."; done; templ ok
+        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
       fi
-      printf "$(fgc 215 "|") Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"
+      printf "$IND Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"
     else
-      printf "$(fgc 215 "|") No connection to $peer!" && templ fail
+      printf "$IND No connection to $peer!" && templ fail
     fi
   done
 fi

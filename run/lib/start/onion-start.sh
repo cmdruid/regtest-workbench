@@ -28,9 +28,8 @@ get_services_hostname() {
 
 fprint() {
   col_offset=5
-  prefix="$(fgc 215 '|')"
   newline=`printf %s "$1" | cut -f ${col_offset}- -d ' '`
-  printf '%s\n' "$prefix $newline"
+  printf '%s\n' "$IND $newline"
 }
 
 ###############################################################################
@@ -56,7 +55,7 @@ if [ -z "$DAEMON_PID" ]; then
   tor -f $CONF_FILE > /dev/null 2>&1; tail -f $LOGS_PATH/notice.log | while read line; do
     fprint "$line" && echo "$line" | grep "Bootstrapped 100%" > /dev/null 2>&1
     if [ $? = 0 ]; then 
-      printf "$(fgc 215 "|") Tor initialized!"
+      printf "$IND Tor initialized!"
       templ ok && exit 0
     fi
   done;

@@ -25,9 +25,8 @@ LOGS_FILE="$LOGS_PATH/debug.log"
 
 fprint() {
   col_offset=2
-  prefix="$(fgc 215 '|')"
   newline=`printf %s "$1" | cut -f ${col_offset}- -d ' '`
-  printf '%s\n' "$prefix $newline"
+  printf '%s\n' "$IND $newline"
 }
 
 ###############################################################################
@@ -73,10 +72,10 @@ if [ -z "$DAEMON_PID" ]; then
   bitcoind $config > /dev/null 2>&1; tail -f $LOGS_FILE | while read line; do
     fprint "$line" && printf %s "$line" | grep "init message: Done loading" > /dev/null 2>&1
     if [ $? = 0 ]; then 
-      printf "$(fgc 215 "|") Bitcoin core loaded!"; templ ok && exit 0;
+      printf "$IND Bitcoin core loaded!"; templ ok && exit 0;
     fi
   done
 
 else 
-  printf %s "Bitcoin daemon is running under PID: $(templ hlight $DAEMON_PID)"; templ ok
+  printf "Bitcoin daemon is running under PID: $(templ hlight $DAEMON_PID)"; templ ok
 fi

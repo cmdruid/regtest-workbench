@@ -77,7 +77,7 @@ if [ -d "$PLUG_PATH" ]; then
       name=$(basename $plugin)
       if case $name in .*) ;; *) false;; esac; then continue; fi
       if [ -e "$plugin/$name.py" ]; then
-        printf "$(fgc 215 "|") Enabling $name plugin"
+        printf "$IND Enabling $name plugin"
         chmod +x $PLUG_PATH/$name/$name.py
         lightning-cli plugin start $PLUG_PATH/$name/$name.py > /dev/null 2>&1
         templ ok
@@ -111,9 +111,9 @@ if [ -n "$PEER_LIST" ]; then
 
     ## If valid peer, then connect to node.
     if ! is_node_configured $node_id; then
-      printf "\n$(fgc 215 "|") Adding node: $(prevstr $node_id)@$(prevstr -l 20 $peer_host)"
+      printf "\n$IND Adding node: $(prevstr $node_id)@$(prevstr -l 20 $peer_host)"
       lightning-cli connect "$node_id@$peer_host" > /dev/null 2>&1
-      printf "\n$(fgc 215 "|") Connecting to node"
+      printf "\n$IND Connecting to node"
     fi
 
     while ! is_node_connected $node_id; do sleep 1 && printf "."; done; templ conn

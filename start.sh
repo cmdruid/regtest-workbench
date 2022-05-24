@@ -33,7 +33,7 @@ Options:
   -b, --build               Build a new dockerfile image, using existing cache.
   -r, --rebuild             Delete the existing cache, and build a new image from source.
   -w, --wipe                Delete the existing data volume, and create a new volume.
-  -i, --interactive         Start a new container in interactive mode (does not launch entrypoint.sh).
+  -i, --devmode             Start container in devmode (mounts ./run, does not start entrypoint.sh).
   -v, --verbose             Outputs more information into the terminal (useful for debugging).
   -n, --name                Set the top-level domain name for the container (Default is $DEFAULT_NAME).
   -t, --tor                 Enable the use of Tor and onion services for this node.
@@ -136,7 +136,7 @@ wipe_data() {
 main() {
   ## Start container in runtime configuration.
   echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
-  docker run -t \
+  docker run -it \
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
@@ -197,11 +197,11 @@ if ! image_exists || [ -n "$BUILD" ]; then build_image; fi
 ## Set run mode of container.
 if [ -n "$DEVMODE" ]; then
   DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
-  RUN_MODE="interactive"
-  RUN_FLAGS="-i --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+  RUN_MODE="development"
+  RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
-  RUN_MODE="detached"
-  RUN_FLAGS="-d --restart unless-stopped"
+  RUN_MODE="normal"
+  RUN_FLAGS="--restart unless-stopped"
 fi
 
 ## Create peers path if missing.
@@ -234,16 +234,3 @@ if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Call main container script.
 main
-
-## If container is detached, connect to it.
-if [ "$RUN_MODE" = "detached" ]; then
-echo "================ TEST ======================="
-  #docker logs -f "$SRV_NAME"
-  printf "
-=============================================================================
-  Initialization complete. Use below command to access container:
-  docker exec -it "$SRV_NAME" bash
-=============================================================================
-"
-  docker exec -it $SRV_NAME bash
-fi

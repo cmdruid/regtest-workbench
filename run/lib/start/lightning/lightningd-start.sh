@@ -29,7 +29,7 @@ fprint() {
   col_offset=2
   prefix="$(fgc 215 '|')"
   newline=`printf %s "$1" | cut -f ${col_offset}- -d ' '`
-  printf '%s\n' "$prefix $newline"
+  printf '%s\n' "$IND $newline"
 }
 
 ###############################################################################
@@ -79,7 +79,7 @@ if [ -z "$DAEMON_PID" ]; then
   lightningd $config > /dev/null 2>&1; tail -f $LOGS_FILE | while read line; do
     fprint "$line" && echo "$line" | grep "Server started with public key" > /dev/null 2>&1
     if [ $? = 0 ]; then
-      printf "$(fgc 215 "|") Lightning daemon running on regtest network!"
+      printf "$IND Lightning daemon running on regtest network!"
       templ ok && echo && exit 0
     fi
   done

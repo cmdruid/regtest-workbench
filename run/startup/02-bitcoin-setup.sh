@@ -113,7 +113,7 @@ sh -c $WORK_PATH/lib/share/bitcoin-share-config.sh
 echo && printf "Loading $FUND_WALLET wallet:"
 if ! is_wallet_loaded; then
   if ! is_wallet_created $FUND_WALLET; then
-    printf "\n$(fgc 215 "|") Creating new wallet."
+    printf "\n$IND Creating new wallet."
     bitcoin-cli createwallet $FUND_WALLET > /dev/null 2>&1
   else
     bitcoin-cli loadwallet $FUND_WALLET > /dev/null 2>&1
@@ -123,13 +123,13 @@ fi
 ## Check that tx fee is set.
 txfee=`bitcoin-cli getwalletinfo | jgrep paytxfee`
 if ! greater_than $txfee $MIN_FEE; then
-  printf "\n$(fgc 215 "|") Minimum txfee not set! Setting to $MIN_FEE fee."
+  printf "\n$IND Minimum txfee not set! Setting to $MIN_FEE fee."
   bitcoin-cli settxfee $MIN_FEE > /dev/null 2>&1
 fi
 
 ## Check that payment address is configured.
 if [ ! -e "$FUND_FILE" ]; then
-  printf "\n$(fgc 215 "|") Generating new $FUND_LABEL payment address."
+  printf "\n$IND Generating new $FUND_LABEL payment address."
   if ! is_address_created $FUND_LABEL; then create_address_by_label $FUND_LABEL; fi
   fund_address=`get_address_by_label $FUND_LABEL`
   printf %b\\n "WALLET_NAME=$FUND_WALLET\nLABEL=$ADDR_LABEL\nADDRESS=$fund_address" > $FUND_FILE
@@ -161,9 +161,9 @@ if [ -n "$PEER_LIST" ]; then
     
     ## If valid peer, then connect to node.
     if ! is_peer_configured $peer_host; then
-      printf "\n$(fgc 215 "|") Adding node: $(prevstr -l 20 $peer_host)"
+      printf "\n$IND Adding node: $(prevstr -l 20 $peer_host)"
       bitcoin-cli addnode "$peer_host" add
-      printf "\n$(fgc 215 "|") Connecting to node"
+      printf "\n$IND Connecting to node"
     fi
     
     while ! is_peer_connected $peer_host; do sleep 1 && printf "."; done; templ conn
