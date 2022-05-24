@@ -45,6 +45,9 @@ def getpeers(id=None):
     return next((x for x in peers if x["id"] in id), None)
   return peers
 
+def getpeerlist():
+  return [ peer["id"] for peer in getpeers() ]
+
 def getconnectedpeers():
   return [ peer["id"] for peer in getpeers() if peer["connected"] ]
 

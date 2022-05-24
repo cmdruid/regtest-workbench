@@ -11,6 +11,7 @@ DEFAULT_PROXY="127.0.0.1"
 DEFAULT_SOCKS="9050"
 LOG_PATH="/var/log/onionsock"
 WAIT_TIME=2
+VERBOSE=1
 
 ###############################################################################
 # Methods
@@ -68,7 +69,7 @@ kill_port() {
 }
 
 cleanup() {
-  [ $? -eq 0 ] && exit 0 || echo "$0 FAILED at line ${LINENO}" && kill_port $PORT
+  [ $? -eq 0 ] && exit 0 || echo "$0 failed to start." && kill_port $PORT
 }
 
 ###############################################################################
@@ -109,8 +110,9 @@ for arg in "$@"; do
     -h|--help)   usage;         exit 0 ;;
     -c|--check)  check_port $2; exit 0 ;;
     -k|--kill)   kill_port $2;  exit 0 ;;
+    -S|--silent) VERBOSE=0;     shift 1;;
     -p|--port)   PORT="$2";     shift 2;;
-    -x|--proxy)  PROXY="$2";    shift 2;;
+    -X|--proxy)  PROXY="$2";    shift 2;;
     -s|--socks)  SOCKS="$2";    shift 2;;
   esac
 done
@@ -145,6 +147,6 @@ kill_port $PORT
 main && sleep $WAIT_TIME &
 
 ## Print success message.
-printf "Opening socat tunnel with pid $(templ hlight "$!")" && templ ok
-printf "$(fgc 215 "|") Created on port $PORT and redirecting to:\n"
-printf "$(fgc 215 "|") http://$DEST_HOST:$DEST_PORT\n\n"
+[ -n "$VERBOSE" ] && printf "$(fgc 215 "|") Opening socat tunnel under PID: $(templ hlight "$!")\n"
+[ -n "$VERBOSE" ] && printf "$(fgc 215 "|") Created on port $PORT and redirecting to:\n"
+[ -n "$VERBOSE" ] && printf "$(fgc 215 "|") http://$DEST_HOST:$DEST_PORT\n"
