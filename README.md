@@ -1,6 +1,6 @@
 # Regtest Node
 
-A containerized stack of Bitcoin and Ligtning, plus a suite of development tools. Prototype and deploy your next project with lightning speed!
+A containerized stack of Bitcoin and Ligtning, plus a full suite of development tools. Prototype and deploy your next project with lightning speed!
 
 ## How to Use
 
@@ -29,9 +29,9 @@ git clone "this repository url" && cd regtest-node
 ## A quick tutorial is also built into the help screen.
 ./start.sh --help
 ```
-Each node is designed to automatically connect with peers (*on bitcoin and lightning*), request funds from a designated node, open channels, and auto-balance those channels. All argument flags are optional. The final argument will designate your node with a name tag.
+Based on the above configuration, each node will automatically connect to their designated peers (*on bitcoin and lightning*), request funds from a faucet, and open payment channels. The final argument is what designates a node with its name tag.
 
-Use the `--mine` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require 100 blocks to mature, so the default height is 150.
+Use the `--mine` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default height is 150.
 
 By default, Your miner is configured to watch the mempool, then auto-mine blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds so that transactionswill confirm quickly. If you wish to deploy multiple miners, you should use longer timings in order to avoid chain splits.
 
@@ -41,7 +41,7 @@ The `--peers` and `--channels` flags will intsruct nodes on whom to peer and ope
 
 > Tip: *Use your initial miner node as your main faucet, since the block rewards will have made him filthy rich! Miners may also generate more blocks in order to procure funds if their wallet balance is low.*
 
-Nodes with the `--tor` flag will auto-magically setup onion routing and peer with other tor-enabled nodes, no extra configuration required. This flag will also make the endpoints on a given node available as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available.
+Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also make the endpoints on a given node available as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available.
 
 All the pertinent settings, keys and credentials for running nodes are namespaced and stored in the `/share` folder. Each node will mount and scan this folder in order to peer and communicate with other nodes. Files for a given node are refreshed when you restart that node, so feel free to modify a node's settings and data on a frequent basis!
 
@@ -53,7 +53,7 @@ The `./run/entrypoint.sh` startup script is the heart of each node, and is desig
 
 > Tip: *Use the `--interactive` flag to enter a node's console before the entrypoint script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)*
 
-All nodes ship with Flask and Nodejs included, plus a core library of tools for connecting to the underlying Bitcoin / Lightning daemons. *Work in progress* Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
+All nodes ship with Flask and Nodejs included, plus a core library of tools for connecting to the underlying Bitcoin / Lightning daemons. Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
 
 ## Repository Overview
 
@@ -83,10 +83,10 @@ Documentation will be stored in this folder. More documentation coming soon!
 
 This folder contains the main `entrypoint.sh` script, libraries and tools, plus all other scripts used to manage services in the stack. 
 
-- Scripts placed in `bin` and `lib` are available from the container's PATH (`pylib` for PYPATH). 
-- Scripts placed in `startup` are executed in alpha-numeric order when `entrypoint.sh` is run. 
-- Projects placed in `plugins` are loaded by lightningd at startup (*your main script must match the folder name*). 
-- All other scripts are organized into `util`.
+- Scripts placed in `bin` are available from the container's PATH.
+- Most of the source code for this project is located in `lib`.
+- Projects placed in `plugins` are loaded by lightningd at startup (*folder name must match main script*).
+- Scripts placed in `startup` are executed in alpha-numeric order when `entrypoint.sh` is run.
 
 The entire run folder is copied at build time, located at `/root/run` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container. When starting a container in `--interactive` mode, this folder is mounted directly, with files modified in real-time.
 
@@ -96,7 +96,7 @@ Each node will mount this folder at runtime, then create and manage their own fo
 
 ## Development
 
-*Work in progress. Will write an introduction to interactive mode and how to hack the project on your own!*
+*Work in progress. Feel free to hack the project on your own!*
 
 ## Contribution
 
