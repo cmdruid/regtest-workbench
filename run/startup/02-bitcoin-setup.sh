@@ -8,17 +8,10 @@ set -E
 ###############################################################################
 
 DATA_PATH="/data/bitcoin"
-CONF_PATH="$HOME/config/bitcoin"
-LINK_PATH="$HOME/.bitcoin"
 PEER_PATH="$SHARE_PATH/$HOSTNAME"
-LOGS_PATH="/var/log/bitcoin"
 
-CONF_FILE="$CONF_PATH/bitcoin.conf"
-LINK_FILE="$LINK_PATH/bitcoin.conf"
-AUTH_FILE="$DATA_PATH/rpcauth.conf"
 FUND_FILE="$DATA_PATH/wallet.conf"
 PEER_FILE="$PEER_PATH/bitcoin-peer.conf"
-LOGS_FILE="$LOGS_PATH/debug.log"
 
 DEFAULT_WALLET="master"
 DEFAULT_LABEL="coinbase"
@@ -31,8 +24,12 @@ BLOCK_SYNC_TIMEOUT=30
 # Methods
 ###############################################################################
 
-is_peer_connected() {
+is_peer_configured() {
   [ -n "$1" ] && [ -n "$(bitcoin-cli getaddednodeinfo | jgrep addednode | grep $1)" ]
+}
+
+is_peer_connected() {
+  [ -n "$1" ] && [ "$(bitcoin-cli getaddednodeinfo $1 2>&1 | jgrep connected | head -n 1)" = "true" ]
 }
 
 get_peer_config() {
@@ -49,16 +46,6 @@ is_wallet_created() {
 
 is_address_created() {
   [ -n "$1" ] && bitcoin-cli -rpcwallet=$FUND_WALLET listlabels | grep $2 > /dev/null 2>&1
-}
-
-load_wallet() {
-  if ! is_wallet_created $FUND_WALLET; then
-    printf "No existing $FUND_WALLET wallet found, creating" >&2
-    bitcoin-cli createwallet $FUND_WALLET > /dev/null && templ ok
-  else
-    printf "Loading existing wallet $FUND_WALLET" >&2
-    bitcoin-cli loadwallet $FUND_WALLET > /dev/null && templ ok
-  fi
 }
 
 create_address_by_label() {
@@ -89,14 +76,15 @@ timeout_child() {
   wait $child 2>/dev/null
 }
 
-fprint() {
-  newline=`printf "%.115s" "$1" | cut -f 2- -d ' '`
-  printf %b\\n "$(fgc 215 "|") $newline"
+finish() {
+  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
 }
 
 ###############################################################################
 # Script
 ###############################################################################
+
+trap finish EXIT
 
 if [ "$?" -ne 0 ]; then exit 1; fi
 
@@ -110,52 +98,44 @@ if [ -z "$MIN_BLOCKS" ]; then MIN_BLOCKS=$DEFAULT_MIN_BLOCKS; fi
 
 ## Create any missing paths.
 if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
-if [ ! -d "$LINK_PATH" ]; then mkdir -p "$LINK_PATH"; fi
-if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 
-## Make sure configuration file is linked.
-if [ ! -e "$LINK_FILE" ]; then
-  printf "Adding symlink for $LINK_FILE ..."
-  ln -s $CONF_FILE $LINK_FILE
-  templ ok
-fi
-
-## Get PID of existing daemon.
-DAEMON_PID=`pgrep bitcoind`
-
-if [ -z "$DAEMON_PID" ]; then
-
-  ## Declare base config string.
-  config=""
-
-  ## Add rpcauth credentials.
-  if [ ! -e "$AUTH_FILE" ]; then
-    printf "Generating RPC credentials ...\n"
-    rpcauth --save="$DATA_PATH"
-    config="$config -$(cat $AUTH_FILE)"
-  fi
-
-  ## If tor is running, add tor configuration.
-  if [ -n "$(pgrep tor)" ]; then
-    config="$config -proxy=127.0.0.1:9050"
-  fi
-
-  ## Start bitcoind then tail the logfile to search for the completion phrase.
-  printf "Starting bitcoin daemon"; templ prog
-  bitcoind $config; tail -f $LOGS_FILE | while read line; do
-    fprint "$line" && printf %s "$line" | grep "init message: Done loading"
-    if [ $? = 0 ]; then 
-      printf "$(fgc 215 "|") Bitcoin core loaded!"; templ ok && exit 0;
-    fi
-  done
-  echo
-
-else 
-  printf %s "Bitcoin daemon is running under PID: $(templ hlight $DAEMON_PID)"; templ ok
-fi
+## Start bitcoin daemon.
+sh -c $LIB_PATH/start/bitcoin/bitcoind-start.sh
 
 ## Update share configuration.
 sh -c $WORK_PATH/lib/share/bitcoin-share-config.sh
+
+###############################################################################
+# Wallet Configuration
+###############################################################################
+
+## Make sure that wallet is loaded.
+echo && printf "Loading $FUND_WALLET wallet:"
+if ! is_wallet_loaded; then
+  if ! is_wallet_created $FUND_WALLET; then
+    printf "\n$(fgc 215 "|") Creating new wallet."
+    bitcoin-cli createwallet $FUND_WALLET > /dev/null 2>&1
+  else
+    bitcoin-cli loadwallet $FUND_WALLET > /dev/null 2>&1
+  fi
+fi
+
+## Check that tx fee is set.
+txfee=`bitcoin-cli getwalletinfo | jgrep paytxfee`
+if ! greater_than $txfee $MIN_FEE; then
+  printf "\n$(fgc 215 "|") Minimum txfee not set! Setting to $MIN_FEE fee."
+  bitcoin-cli settxfee $MIN_FEE > /dev/null 2>&1
+fi
+
+## Check that payment address is configured.
+if [ ! -e "$FUND_FILE" ]; then
+  printf "\n$(fgc 215 "|") Generating new $FUND_LABEL payment address."
+  if ! is_address_created $FUND_LABEL; then create_address_by_label $FUND_LABEL; fi
+  fund_address=`get_address_by_label $FUND_LABEL`
+  printf %b\\n "WALLET_NAME=$FUND_WALLET\nLABEL=$ADDR_LABEL\nADDRESS=$fund_address" > $FUND_FILE
+fi
+
+templ ok
 
 ###############################################################################
 # Peer Connection
@@ -165,12 +145,11 @@ if [ -n "$PEER_LIST" ]; then
   for peer in $(printf "$PEER_LIST" | tr ',' ' '); do
     
     ## Search for peer file in peers path.
-    printf "Searching for connection settings from $peer"
+    echo && printf "Checking connection to $peer:"
     config=`find $SHARE_PATH/$peer* -name bitcoin-peer.conf`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi
-    templ ok
 
     ## Parse current peering info.
     onion_host=`cat $config | kgrep ONION_NAME`
@@ -179,57 +158,27 @@ if [ -n "$PEER_LIST" ]; then
     else
       peer_host="$(cat $config | kgrep HOST_NAME)"
     fi
-
+    
     ## If valid peer, then connect to node.
-    if ! is_peer_connected $peer_host; then
-      printf "%.60s" "Peering to bitcoin node $peer_host"
+    if ! is_peer_configured $peer_host; then
+      printf "\n$(fgc 215 "|") Adding node: $(prevstr -l 20 $peer_host)"
       bitcoin-cli addnode "$peer_host" add
-      templ conn
+      printf "\n$(fgc 215 "|") Connecting to node"
     fi
+    
+    while ! is_peer_connected $peer_host; do sleep 1 && printf "."; done; templ conn
 
   done
 
 fi
 
 ###############################################################################
-# Wallet Configuration
-###############################################################################
-
-## Make sure that wallet is loaded.
-if ! is_wallet_loaded; then load_wallet; fi
-
-## Check that tx fee is set.
-txfee=`bitcoin-cli getwalletinfo | jgrep paytxfee`
-if ! greater_than $txfee $MIN_FEE; then
-  printf "Minimum txfee not set! Setting to $MIN_FEE"
-  bitcoin-cli settxfee $MIN_FEE > /dev/null 2>&1
-  templ ok
-fi
-
-## Check that payment address is configured.
-if [ ! -e "$FUND_FILE" ]; then
-  printf "Configuring $FUND_WALLET wallet"
-  if ! is_address_created $FUND_LABEL; then create_address_by_label $FUND_LABEL; fi
-  fund_address=`get_address_by_label $FUND_LABEL`
-  printf %b\\n "WALLET_NAME=$FUND_WALLET\nLABEL=$ADDR_LABEL\nADDRESS=$fund_address" > $FUND_FILE
-  templ ok
-fi
-
-###############################################################################
 # Blockchain Config
 ###############################################################################
 
-## Check if we are connected to peers.
-peer_connections=`bitcoin-cli getconnectioncount`
-echo "Peer connections: $peer_connections"
-if [ -n "$PEER_LIST" ] && [ "$((peer_connections))" -eq 0 ]; then 
-  printf "Failed to connect to peers!"
-  templ fail
-fi
-
 ## Wait for blockchain to sync with peers.
 if [ "$((peer_connections))" -ne 0 ] && get_ibd_state; then
-  printf "Waiting (up to ${BLOCK_SYNC_TIMEOUT}s) for blockchain to sync with peers ."
+  echo && printf "Waiting (up to ${BLOCK_SYNC_TIMEOUT}s) for blockchain to sync with peers ."
   ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_SYNC_TIMEOUT
   templ ok
 fi
@@ -258,10 +207,9 @@ if [ -n "$MINE_NODE" ]; then
   echo && regminer $schedule $address
 fi
 
-chainstatus="$(bitcoin-cli -getinfo | grep 100.0000%)"
+echo && chainstatus="$(bitcoin-cli -getinfo | grep 100.0000%)"
 if [ -n "$chainstatus" ]; then 
-  printf %s "Blockchain $chainstatus" && templ ok
+  printf %s "Blockchain $chainstatus"; templ ok
 else 
-  printf "Failed to sync blockchain with network!" && templ fail && exit 1
+  printf "Failed to sync blockchain with network!"; templ fail && exit 1
 fi
-

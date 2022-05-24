@@ -20,5 +20,5 @@ if [ -d "$SHARE_PATH/$HOSTNAME" ]; then
 fi
 
 if [ -n "$TOR_NODE" ]; then
-  sh -c $LIB_PATH/startup/onion-start.sh
+  sh -c $LIB_PATH/start/onion-start.sh
 fi

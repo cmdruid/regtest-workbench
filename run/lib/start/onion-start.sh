@@ -27,8 +27,10 @@ get_services_hostname() {
 }
 
 fprint() {
-  newline=`printf "%.115s" "$1" | cut -f 2- -d ' '`
-  printf %b\\n "$(fgc 215 "|") $newline"
+  col_offset=5
+  prefix="$(fgc 215 '|')"
+  newline=`printf %s "$1" | cut -f ${col_offset}- -d ' '`
+  printf '%s\n' "$prefix $newline"
 }
 
 ###############################################################################
@@ -50,18 +52,18 @@ if [ -z "$DAEMON_PID" ]; then
   if [ ! -e "$CONF_FILE" ]; then echo "$CONF_FILE is missing!" && exit 1; fi
 
   ## Start tor then tail the logfile to search for the completion phrase.
-  printf "Initializing tor ..."
-  tor -f $CONF_FILE; tail -f $LOGS_PATH/notice.log | while read line; do
-    fprint "$line" && echo "$line" | grep "Bootstrapped 100%"
+  printf "Initializing tor" && templ prog
+  tor -f $CONF_FILE > /dev/null 2>&1; tail -f $LOGS_PATH/notice.log | while read line; do
+    fprint "$line" && echo "$line" | grep "Bootstrapped 100%" > /dev/null 2>&1
     if [ $? = 0 ]; then 
-      printf "Tor initialized!"
+      printf "$(fgc 215 "|") Tor initialized!"
       templ ok && exit 0
     fi
   done;
 
 else 
   
-  printf "Tor daemon is running under PID: $(templ hlight $DAEMON_PID)"; templ ok
+  printf "Tor daemon is running under PID: $(templ hlight $DAEMON_PID)" && templ ok
 
 fi
 

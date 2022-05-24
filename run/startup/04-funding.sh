@@ -35,7 +35,7 @@ wallet_cli() {
 
 faucet_cli() {
   [ -n "$FAUCET_CONF" ] && [ -n "$FAUCET_WALLET" ] && \
-  bitcoin-cli $FAUCET_CONF -rpcwallet="$FAUCET_WALLET" $@
+  bitcoin-cli $FAUCET_CONF -rpcwallet=$FAUCET_WALLET $@
 }
 
 get_btc_balance() {
@@ -53,18 +53,22 @@ is_node_connected() {
 }
 
 is_channel_confirmed() {
-  [ -n "$1" ] && lcli peerchannelcount "$1"
+  [ -n "$1" ] && [ "$(lcli peerchannelcount "$1")" != "0" ]
 }
 
 is_channel_funded() {
   [ -n "$1" ] && [ "$(lcli peerchannelbalance "$1")" != "0" ]
 }
 
+finish() {
+  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
+}
+
 ###############################################################################
 # Script
 ###############################################################################
 
-if [ "$?" -ne 0 ]; then exit 1; fi
+trap finish EXIT
 
 templ banner "Funding Configuration"
 
@@ -96,12 +100,11 @@ fi
 if [ -n "$USE_FAUCET" ]; then
 
   ## Search for peer file in peers path.
-  printf "Searching for faucet settings from $USE_FAUCET"
+  printf "Checking faucet configuration:\n"
   config=`find "$SHARE_PATH/$USE_FAUCET"* -name bitcoin-peer.conf`
 
   ## Exit out if peer file is not found.
   if [ ! -e "$config" ]; then templ fail && continue; fi
-  templ ok && echo
 
   ## Parse current peering info.
   onion_host=`cat $config | kgrep ONION_NAME`
@@ -125,61 +128,64 @@ if [ -n "$USE_FAUCET" ]; then
   FAUCET_WALLET=`bitcoin-cli $FAUCET_CONF listwallets | tr -d "\" " | tail -n +2 | head -n 1`
 
   if [ -z "$FAUCET_WALLET" ]; then 
-    printf "Faucet configuration failed!" && templ fail
-  else printf "Connected to faucet \"$FAUCET_WALLET\" wallet" && templ conn; fi
+    printf "$(fgc 215 "|") Faucet configuration failed!" && templ fail
+  else
+    printf "$(fgc 215 "|") Connected to faucet \"$FAUCET_WALLET\" wallet." && templ conn 
+  fi
   echo
 fi
 
 ## Check if bitcoin wallet has sufficient balance.
-printf "Checking bitcoin wallet balance"
+printf "Checking bitcoin wallet balance:"
 btc_balance=`get_btc_balance`
 
 ## If bitcoin balance is low, get funds from faucet.
 if ! greater_than $btc_balance $MIN_FUNDS; then
-  printf ":\n| Bitcoin funds are low!\n| Searching for funding ... "
+  echo && printf "$(fgc 215 "|") Bitcoin funds are low! Searching for funding ...\n"
   if [ -n "$MINE_NODE" ]; then
-    printf "\n| Mining blocks for funds"
+    printf "$(fgc 215 "|") Mining 5 blocks for funds ...\n"
     bitcoin-cli generatetoaddress 5 $btc_address > /dev/null 2>&1
     if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-      printf " ...\n| No coinbase in reserve!\n| Mining 100 more blocks"
+      printf "$(fgc 215 "|") Block height too low! Mining 150 more blocks ...\n"
       bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
       if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-        printf " ...\n| We are still broke! Something is wrong!" && templ fail
-      else templ ok; fi
-    else templ ok; fi
-  elif [ -n "$USE_FAUCET" ] && [ -n "$FAUCET_WALLET" ]; then
-    printf "\n| checking faucet ... "
-    if ! greater_than $(faucet_cli getbalance) $MIN_FUNDS; then 
-      printf "faucet is broke!" && templ fail
-    else
-      printf "\n| Funding address $btc_address"
-      faucet_cli sendtoaddress $btc_address 10 > /dev/null 2>&1
-      printf "\n| Waiting for funds to clear ."
-      while ! greater_than $(get_btc_balance) $MIN_FUNDS; do sleep 1 && printf "."; done
-      templ ok
-      printf "| New Bitcoin balance:" && templ brkt "$(get_btc_balance) BTC."
+        printf "$(fgc 215 "|") We are still broke! Something is wrong!" && templ fail && exit 1
+      fi
     fi
-  else printf "\n| No source for funds!" && templ fail; fi
-  echo
-else templ brkt "$btc_balance BTC."; fi
+  elif [ -n "$USE_FAUCET" ] && [ -n "$FAUCET_WALLET" ]; then
+    printf "$(fgc 215 "|") Checking faucet ...\n"
+    if ! greater_than $(faucet_cli getbalance) $MIN_FUNDS; then 
+      printf "$(fgc 215 "|") Faucet is broke!" && templ fail
+    else
+      printf "$(fgc 215 "|") Funding address: $btc_address\n"
+      faucet_cli sendtoaddress $btc_address 10 > /dev/null 2>&1
+      printf "$(fgc 215 "|") Waiting for funds to clear ."
+      while ! greater_than $(get_btc_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
+    fi
+  else
+    printf "$(fgc 215 "|") No source for funds!" && templ fail && exit 1
+  fi
+  printf "$(fgc 215 "|") New Bitcoin balance:" && templ brkt "$(get_btc_balance) BTC."
+else 
+  templ brkt "$btc_balance BTC."
+fi; echo
 
 ## Check if lightning wallet has sufficient balance.
-printf "Checking lightning wallet balance"
+printf "Checking lightning wallet balance:"
 cln_balance=`get_cln_balance`
 
 ## If lightning balance is low, transfer funds from main wallet.
 if ! greater_than $cln_balance $MIN_FUNDS; then
-  printf ":\n| Lightning funds are low! Searching for funding ... "
+  echo && printf "$(fgc 215 "|") Lightning funds are low! Searching for funding ...\n"
   if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-    printf "\n| Your bitcoin wallet is broke!" && templ fail
+    printf "$(fgc 215 "|") Your bitcoin wallet is broke!" && templ fail && exit 1
   else
-    printf "\n| Funding address: $cln_address"
+    printf "$(fgc 215 "|") Funding address: $cln_address\n"
     rounded_funds=`get_btc_balance | awk -F '.' '{ print $1}'`
     bitcoin-cli sendtoaddress $cln_address $((rounded_funds / 4)) > /dev/null 2>&1
-    printf "\n| Waiting for funds to clear ."
-    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1 && printf "."; done
-    templ ok
-    printf "| New Lightning balance:" && templ brkt "$(get_cln_balance) BTC."
+    printf "$(fgc 215 "|") Waiting for funds to clear ."
+    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
+    printf "$(fgc 215 "|") New Lightning balance:" && templ brkt "$(get_cln_balance) BTC."
   fi
 else
   templ brkt "$cln_balance BTC."
@@ -189,9 +195,9 @@ fi
 if [ -n "$CHAN_LIST" ]; then
   sat_amt="5000000"
   for peer in $(printf $CHAN_LIST | tr ',' ' '); do
-    
+
     ## Search for peer file in peers path.
-    printf "Checking channel with $peer:\n"
+    echo && printf "Checking channel with $peer:\n"
     config=`find $SHARE_PATH/$peer* -name lightning-peer.conf`
 
     ## Exit out if peer file is not found.
@@ -199,20 +205,19 @@ if [ -n "$CHAN_LIST" ]; then
 
     ## Parse current peering info.
     node_id=`cat $config | kgrep NODE_ID`
+    printf "$(fgc 215 "|") Node ID: $node_id\n"
   
     ## If valid peer, then connect to node.
     if is_node_connected $node_id; then
-      if ! is_channel_confirmed; then
-        printf "| Opening channel with $peer for $sat_amt sats."
-        printf "\n| Waiting for channel to confirm ."
+      if ! is_channel_confirmed $node_id; then
+        printf "$(fgc 215 "|") Opening channel with $peer for $sat_amt sats.\n"
+        printf "$(fgc 215 "|") Waiting for channel to confirm ."
         lightning-cli fundchannel $node_id $sat_amt > /dev/null 2>&1
-        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1 && printf "."; done
-        templ ok
+        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1 && printf "."; done; templ ok
       fi
-      printf "| Channel balance for $peer"
-      templ brkt "$(lcli peerchannelbalance $node_id)"
+      printf "$(fgc 215 "|") Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"
     else
-      printf "| No connection to $peer!" && templ fail
+      printf "$(fgc 215 "|") No connection to $peer!" && templ fail
     fi
   done
 fi
