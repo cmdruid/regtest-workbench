@@ -1,6 +1,6 @@
 # Regtest Node
 
-A containerized stack of Bitcoin and Ligtning, plus a full suite of development tools. Prototype and deploy your next project with lightning speed!
+A containerized stack of Bitcoin and Lightning, plus a full suite of development tools. Prototype and deploy your next project with lightning speed!
 
 ## How to Use
 
