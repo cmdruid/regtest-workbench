@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 ## Start script for bitcoind.
 
 set -E
@@ -145,7 +145,7 @@ if [ -n "$PEER_LIST" ]; then
   for peer in $(printf "$PEER_LIST" | tr ',' ' '); do
     
     ## Search for peer file in peers path.
-    echo && printf "Checking connection to $peer:"
+    echo && printf "Checking connection to $peer: "
     config=`find $SHARE_PATH/$peer* -name bitcoin-peer.conf`
 
     ## Exit out if peer file is not found.
@@ -163,7 +163,7 @@ if [ -n "$PEER_LIST" ]; then
     if ! is_peer_configured $peer_host; then
       printf "\n$IND Adding node: $(prevstr -l 20 $peer_host)"
       bitcoin-cli addnode "$peer_host" add
-      printf "\n$IND Connecting to node"
+      printf "\n$IND Connecting to node "
     fi
     
     while ! is_peer_connected $peer_host; do sleep 1 && printf "."; done; templ conn

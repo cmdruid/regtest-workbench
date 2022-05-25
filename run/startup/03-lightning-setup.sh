@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 ## Start script for lightning daemon.
 
 set -E
@@ -76,10 +76,11 @@ if [ -d "$PLUG_PATH" ]; then
     for plugin in $plugins; do
       name=$(basename $plugin)
       if case $name in .*) ;; *) false;; esac; then continue; fi
-      if [ -e "$plugin/$name.py" ]; then
+      plugin_name=`find $plugin -maxdepth 1 -name $name.*`
+      if [ -e "$plugin_name" ]; then
         printf "$IND Enabling $name plugin"
-        chmod +x $PLUG_PATH/$name/$name.py
-        lightning-cli plugin start $PLUG_PATH/$name/$name.py > /dev/null 2>&1
+        chmod +x $plugin_name
+        lightning-cli plugin start $plugin_name > /dev/null 2>&1
         templ ok
       fi
     done

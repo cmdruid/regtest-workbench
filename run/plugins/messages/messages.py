@@ -4,17 +4,13 @@
 
 from pyln.client import Plugin
 
-import json, random, sys
+import random, sys
 
 plugin = Plugin()
 
 @plugin.method("sendmessage")
 def send_msg(plugin, peer_id, payload):
   """Messages are in the byte format of [type(2)][id(8)][data]."""
-  if plugin.get_option('usage'):
-    plugin.print_usage()
-    return
-
   msgtype = int(plugin.get_option('mtype'), 16)
   msgid   = random.randint(0, 2**64)
   msg     = (msgtype.to_bytes(2, 'big')

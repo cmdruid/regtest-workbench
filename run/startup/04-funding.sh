@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 ## Startup script for funding the node.
 
 set -E
@@ -15,6 +15,7 @@ CLN_FUND_FILE="$CLN_DATA_PATH/fund.address"
 
 DEFAULT_RPC_SOCK=18446
 DEFAULT_MIN_FUNDS=1
+FUND_SPLIT=4
 
 FAUCET_CONF=""
 FAUCET_WALLET=""
@@ -46,6 +47,7 @@ get_cln_balance() {
   total=0
   for value in `lightning-cli listfunds | jgrep value`; do total="$((total + value))"; done
   printf "$((total / 100000000))"
+  sleep 1
 }
 
 is_node_connected() {
@@ -128,7 +130,9 @@ if [ -n "$USE_FAUCET" ]; then
   FAUCET_WALLET=`bitcoin-cli $FAUCET_CONF listwallets | tr -d "\" " | tail -n +2 | head -n 1`
 
   if [ -z "$FAUCET_WALLET" ]; then 
-    printf "$IND Faucet configuration failed!" && templ fail
+    printf "$IND Faucet configuration failed! Check params:" && templ fail
+    printf "$IND '-rpcconnect=$peer_host -rpcport=$rpc_port'\n"
+    printf "$IND '-rpcuser=$rpc_user -rpcpassword=$rpc_pass'\n"
   else
     printf "$IND Connected to faucet \"$FAUCET_WALLET\" wallet." && templ conn 
   fi
@@ -182,9 +186,12 @@ if ! greater_than $cln_balance $MIN_FUNDS; then
   else
     printf "$IND Funding address: $cln_address\n"
     rounded_funds=`get_btc_balance | awk -F '.' '{ print $1}'`
-    bitcoin-cli sendtoaddress $cln_address $((rounded_funds / 4)) > /dev/null 2>&1
+    funds_amt="$((rounded_funds / FUND_SPLIT))"
+    bitcoin-cli sendtoaddress $cln_address $funds_amt > /dev/null 2>&1
+    ## This is a hack to speed up lightning wallet settlment. 
+    ## sleep 1 && bitcoin-cli generatetoaddress 1 $cln_address > /dev/null 2>&1
     printf "$IND Waiting for funds to clear ."
-    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1.5 && printf "."; done; templ ok
+    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
     printf "$IND New Lightning balance:" && templ brkt "$(get_cln_balance) BTC."
   fi
 else
@@ -212,7 +219,8 @@ if [ -n "$CHAN_LIST" ]; then
       if ! is_channel_confirmed $node_id; then
         printf "$IND Opening channel with $peer for $sat_amt sats.\n"
         printf "$IND Waiting for channel to confirm ."
-        lightning-cli fundchannel $node_id $sat_amt > /dev/null 2>&1
+        lightning-cli fundchannel id=$node_id amount=$sat_amt \
+        minconf=1 push_msat=$sat_amt > /dev/null 2>&1
         while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
       fi
       printf "$IND Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"

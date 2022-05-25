@@ -51,16 +51,15 @@ DAEMON_PID=`lsof -c $BIN_NAME | grep "$(which $BIN_NAME)" | awk '{print $2}'`
 
 if [ -z "$DAEMON_PID" ]; then
 
-  ## Declare base config string.
-  config=""
-
   ## Add rpcauth credentials.
   if [ ! -e "$AUTH_FILE" ]; then
     printf "Generating RPC credentials"
     rpcauth --save="$DATA_PATH"
-    config="$config -$(cat $AUTH_FILE)"
     templ ok
   fi
+
+  ## Declare base config string.
+  config="-rpcauth=$(cat $AUTH_FILE)"
 
   ## If tor is running, add tor configuration.
   if [ -n "$(pgrep tor)" ]; then

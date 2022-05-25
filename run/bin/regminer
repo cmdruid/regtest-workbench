@@ -96,7 +96,7 @@ main() {
     fi
     const=`get_const`; mod=`get_mod`; delay="$((const + mod))"
     sleep $delay && COUNTER=$((COUNTER + delay))
-    truncate_logs
+    if [ -e "$LOG_FILE" ]; then truncate_logs; fi
   done
 }
 
