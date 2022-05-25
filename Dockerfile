@@ -61,11 +61,15 @@ WORKDIR /root
 COPY config /root/config/
 COPY run /root/run/
 
+## Add bash aliases to bashrc.
+RUN alias_file="~/config/.bash_aliases" \
+  && printf "if [ -e $alias_file ]; then . $alias_file; fi\n\n" >> /root/.bashrc
+
 ## Make sure scripts are executable.
 RUN chmod +x /root/run/bin /root/run/lib /root/run/startup /root/run/entrypoint.sh
 
 ## Configure additional paths.
 ENV PATH="/root/run/bin:/root/.local/bin:$PATH"
-ENV PYPATH="/root/run/pylib:$PYPATH"
+#ENV PYPATH="/root/run/pylib:$PYPATH"
 
 ENTRYPOINT [ "/root/run/entrypoint.sh" ]
