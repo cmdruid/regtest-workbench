@@ -1,8 +1,11 @@
-#!/bin/sh
-## Get current x,y cursor position.
+#!/usr/bin/env sh
+## Get current x,y cursor position from terminal.
 
-delay=0.01
-offset=77
+isnum() {
+  [ -n "$1" ] && [ -n "$(printf $1 | grep -E '^[+-]?[0-9]+$')" ]
+}
+
+delay=0.1  ## Without a sufficient delay, things get weird.
 
 exec < /dev/tty
 oldstty=$(stty -g)
@@ -12,8 +15,8 @@ sleep $delay
 IFS=';' read -r row col
 stty $oldstty
 
-[ -n "$row" ] && row=$(expr $(expr substr $row 3 99) - 1) || row=0
-[ -n "$col" ] && col=$(expr ${col%R} - 1) || col=0
+#isnum $row && row=$(expr $(expr substr $row 3 99) - 1) || row=0
+isnum ${col%R} && col=$(expr ${col%R} - 1) || col=0
 
-## We are returning x-coordinate only.
+## We are returning x-coordinate "columns" only.
 printf "$col"

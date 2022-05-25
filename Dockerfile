@@ -2,7 +2,9 @@ FROM debian:bullseye-slim
 
 ## Install dependencies.
 RUN apt-get update && apt-get install -y \
-  curl git iproute2 jq libevent-dev libsodium-dev man openssl procps python3 python3-pip qrencode socat xxd neovim
+  curl git iproute2 jq libevent-dev libsodium-dev lsof man \
+  netcat openssl procps python3 python3-pip qrencode socat \
+  xxd neovim
 
 ## Copy over binaries.
 COPY build/out/* /tmp/bin/
@@ -41,11 +43,13 @@ RUN mkdir -p /root/.lightning/plugins \
   -fsL#o /root/.lightning/plugins/sparko \
   && chmod +x /root/.lightning/plugins/sparko
 
-WORKDIR /root
-
 ## Install RTL REST API.
-#RUN git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git cl-rest
-#RUN cd cl-rest && npm install
+# RUN mkdir -p /root/.lightning \
+#   && cd /root/.lightning \
+#   && git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git \
+#   && cd cl-rest && npm install
+
+WORKDIR /root
 
 ## Configure user account for Tor.
 # RUN addgroup tor \
@@ -57,11 +61,15 @@ WORKDIR /root
 COPY config /root/config/
 COPY run /root/run/
 
+## Add bash aliases to bashrc.
+RUN alias_file="~/config/.bash_aliases" \
+  && printf "if [ -e $alias_file ]; then . $alias_file; fi\n\n" >> /root/.bashrc
+
 ## Make sure scripts are executable.
 RUN chmod +x /root/run/bin /root/run/lib /root/run/startup /root/run/entrypoint.sh
 
 ## Configure additional paths.
 ENV PATH="/root/run/bin:/root/.local/bin:$PATH"
-ENV PYPATH="/root/run/pylib:$PYPATH"
+#ENV PYPATH="/root/run/pylib:$PYPATH"
 
 ENTRYPOINT [ "/root/run/entrypoint.sh" ]

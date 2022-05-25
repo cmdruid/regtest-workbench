@@ -1,0 +1,57 @@
+#!/usr/bin/env sh
+## Slices the beginning and ending of a string and returns a concatenated result.
+
+set -e
+
+###############################################################################
+# Environment
+###############################################################################
+
+CUT_LEN=5
+
+###############################################################################
+# Methods
+###############################################################################
+
+usage() {
+  printf "
+Usage: $(basename $0) [ OPTIONS ] STRING
+
+Slice the start and end of a string, then return a concatenated result.
+
+Arguments:
+  STRING          The string to be sliced and concatenated.
+
+Options:
+  -l, --length    The lenth of substring to slice (off both ends).
+\n"
+}
+
+isnum() {
+  [ -n "$1" ] && [ -n "$(printf $1 | grep -E '^[+-]?[0-9]+$')" ]
+}
+
+###############################################################################
+# Script
+###############################################################################
+
+for arg in "$@"; do
+  case $arg in
+    -h|--help)   usage;        exit 0  ;;
+    -l|--length) CUT_LEN="$2"; shift 2 ;;
+  esac
+done
+
+if [ -z "$1" ] || ! isnum $CUT_LEN; then usage; exit; fi
+
+chlen="${#1}"
+offset="$((chlen-CUT_LEN+1))"
+
+if [ "$((offset))" -lt 2 ] || [ "$((chlen))" -lt "$((offset))" ]; then 
+  printf %b\\n "$1" && exit 0
+fi
+
+prefix=`printf $1 | cut -c 1-$CUT_LEN`
+suffix=`printf $1 | cut -c $offset-$chlen`
+
+printf %b\\n "$prefix...$suffix" && exit 0

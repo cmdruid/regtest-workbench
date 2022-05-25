@@ -21,9 +21,9 @@ Usage: $(basename $0) [ OPTIONS ] TAG
 
 Launch a docker container for bitcoin / lightning development.
 
-Example: $(basename $0) --seed master
-         $(basename $0) --faucet=master --peers=master alice
-         $(basename $0) --faucet=master --peers=master,alice bob
+Example: $(basename $0) --mine master
+         $(basename $0) --faucet=master --peers=master --channels=master alice
+         $(basename $0) --faucet=master --peers=master,alice --channels=alice bob
 
 Arguments:
   TAG                       Tag name used to identify the container.
@@ -33,14 +33,21 @@ Options:
   -b, --build               Build a new dockerfile image, using existing cache.
   -r, --rebuild             Delete the existing cache, and build a new image from source.
   -w, --wipe                Delete the existing data volume, and create a new volume.
-  -i, --interactive         Start a new container in interactive mode (does not launch entrypoint.sh).
+  -i, --devmode             Start container in devmode (mounts ./run, does not start entrypoint.sh).
   -v, --verbose             Outputs more information into the terminal (useful for debugging).
   -n, --name                Set the top-level domain name for the container (Default is $DEFAULT_NAME).
-  -s, --seed                Specify this as a seed node (generates and mines blocks).
-  -t, --disable-tor         Disable the startup of Tor for this container.
-  -p, --peers=tag1,tag2     Specify the peer containers to connect to (for Bitcoin / Lightning nodes).
-  -c, --channels=tag1,tag2  Specify the peer containers to open channels with (for Lightning nodes).
-  -f, --faucet=tag          Specify a container to use as a faucet (usually the seed container).
+  -t, --tor                 Enable the use of Tor and onion services for this node.
+  -m, --mine                Specify this as a mining node (generates blocks and clears mempool).
+  -p, --peers=tag1,tag2     Specify the peer nodes to connect to (for Bitcoin / Lightning nodes).
+  -c, --channels=tag1,tag2  Specify the peer nodes to open channels with (for Lightning nodes).
+  -f, --faucet=tag          Specify a node to use as a faucet (usually a mining node).
+
+Details:
+  --mine=poll,int,fuzz      Configure your mining node to poll every x seconds for transactions,
+  (e.x --mine=2,60,20)      or mine blocks continuously at an interval (or both!). If you are running
+                            multiple mining nodes, set the fuzz value to add random variation to each
+                            block, or you may get chain splits! All params are denominated in seconds,
+                            setting to zero disables that feature.
 
 For more information, or if you want to report any bugs / issues, 
 please visit the github page: https://github.com:cmdruid/regtest-node
@@ -129,7 +136,7 @@ wipe_data() {
 main() {
   ## Start container in runtime configuration.
   echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
-  docker run -t \
+  docker run -it \
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
@@ -155,16 +162,14 @@ for arg in "$@"; do
     -i|--interactive)  DEVMODE=1;                        shift  ;;
     -v|--verbose)      TERM_OUT="/dev/tty";              shift  ;;
     -d=*|--domain=*)   DOMAIN=${arg#*=};                 shift  ;;
-    -m=*|--mount=*)    ADD_MOUNTS=${arg#*=}              shift  ;;
-    -P=*|--ports=*)    ADD_PORTS=${arg#*=}               shift  ;;
+    -M=*|--mount=*)    ADD_MOUNTS=${arg#*=};             shift  ;;
+    -P=*|--ports=*)    ADD_PORTS=${arg#*=};              shift  ;;
     -p=*|--peers=*)    add_arg "PEER_LIST=${arg#*=}";    shift  ;;
     -c=*|--channels=*) add_arg "CHAN_LIST=${arg#*=}";    shift  ;;
     -f=*|--faucet=*)   add_arg "USE_FAUCET=${arg#*=}";   shift  ;;
-    --mine)            add_arg "MINE_NODE=DEFAULT";      shift  ;;
-    --mine=*)          add_arg "MINE_NODE=${arg#*=}";    shift  ;;
-    --seed)            add_arg "SEED_NODE=1";            shift  ;;
-    --seed=*)          add_arg "SEED_NODE=${arg#*=}";    shift  ;;
-    --tor)             add_arg "TOR_NODE=1";             shift  ;;
+    -m|--mine)         add_arg "MINE_NODE=DEFAULT";      shift  ;;
+    -m=*|--mine=*)     add_arg "MINE_NODE=${arg#*=}";    shift  ;;
+    -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
   esac
 done
 
@@ -192,11 +197,11 @@ if ! image_exists || [ -n "$BUILD" ]; then build_image; fi
 ## Set run mode of container.
 if [ -n "$DEVMODE" ]; then
   DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
-  RUN_MODE="interactive"
-  RUN_FLAGS="-i --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+  RUN_MODE="development"
+  RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
-  RUN_MODE="detached"
-  RUN_FLAGS="-d --restart unless-stopped"
+  RUN_MODE="normal"
+  RUN_FLAGS="--restart unless-stopped"
 fi
 
 ## Create peers path if missing.
@@ -229,16 +234,3 @@ if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Call main container script.
 main
-
-## If container is detached, connect to it.
-if [ "$RUN_MODE" = "detached" ]; then
-echo "================ TEST ======================="
-  #docker logs -f "$SRV_NAME"
-  printf "
-=============================================================================
-  Initialization complete. Use below command to access container:
-  docker exec -it "$SRV_NAME" bash
-=============================================================================
-"
-  docker exec -it $SRV_NAME bash
-fi

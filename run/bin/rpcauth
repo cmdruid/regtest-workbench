@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 ## POSIX compliant script for generating Bitcoin RPC credentials.
 ## Requires the openssl library to be installed.
 ## Distributed under the MIT software license.
@@ -87,8 +87,8 @@ RPCAUTH_STRING="$RPC_USER:$SALT\$$HMAC"
 
 ## If set, save rpcauth string to specified path.
 if [ -d "$SAVE_PATH" ]; then 
-  printf %b\\n "rpcauth=$RPCAUTH_STRING" > $SAVE_PATH/$CONF_NAME
-  printf %b\\n "rpcuser=$RPC_USER\nrpcpassword=$RPC_PASS" > $SAVE_PATH/$CRED_NAME
+  printf "$RPCAUTH_STRING\n" > $SAVE_PATH/$CONF_NAME
+  printf "rpcuser=$RPC_USER\nrpcpassword=$RPC_PASS\n" > $SAVE_PATH/$CRED_NAME
 fi
 
 ## Print credentials to console.
