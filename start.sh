@@ -201,8 +201,8 @@ if [ -z "$1" ]; then usage && exit 0; else TAG="$1"; fi
 if [ -z "$DOMAIN" ]; then DOMAIN="$DEFAULT_DOMAIN"; fi
 
 ## Define naming scheme.
-IMG_NAME="$DOMAIN.img"
-NET_NAME="$DOMAIN.net"
+IMG_NAME="$DOMAIN-img"
+NET_NAME="$DOMAIN-net"
 SRV_NAME="$TAG.$DOMAIN.node"
 DAT_NAME="$TAG.$DOMAIN.data"
 
