@@ -14,12 +14,11 @@ IND=`fgc 215 "|-"`
 ###############################################################################
 
 greeting() {
-  printf "Type '$(fgc 220 exit)' to quit the terminal. Your node will continue to run in the background.
+  printf "Press '$(fgc 220 $ESC_KEYS)' to detatch from the terminal. Your node will continue to run in the background.
 You can re-enter this terminal with the command '$(fgc 220 "docker exec -it $HOSTNAME bash")'.\n\n"
 }
 
 cleanup() {
-  echo "Received shutdown signal!"
   status="$?" && [ $status -ne 0 ] || [ -n "$DEVMODE" ] \
     && printf "Exiting with status $?. Cleaning up ..." \
     && rm -r "$SHAREPATH/$HOSTNAME" && printf "done.\n" && exit 0
@@ -29,22 +28,19 @@ cleanup() {
 # Script
 ###############################################################################
 
-trap cleanup SIGTERM SIGKILL SIGHUP
+trap cleanup SIGTERM SIGKILL EXIT
 
-## Make sure share path exists.
-share_host="$SHAREPATH/$HOSTNAME"
-if [ ! -d "$share_host" ]; then
-  printf "Creating directory $share_host ... "
-  mkdir -p $share_host && printf %b\\n "done."
-fi
+## Add a little delay for docker to attach the tty properly.
+if [ -z "$DEVMODE" ]; then sleep 1; fi
 
 ## Execute startup scripts.
 for script in `find $RUNPATH/startup -name *.sh | sort`; do
   IND=$IND sh -c $script
 done
 
+## Print a fancy banner depending on startup success / failure.
 if [ $? -ne 0 ]; then 
-  templ banner "Node startup failed!" && exit 0
+  templ banner "Node startup failed!" && exit 1
 else
 
   templ banner "$HOSTNAME is initialized!"
@@ -63,4 +59,4 @@ else
 fi
 
 ## Setup session for safe mode.
-if [ -z "$DEVMODE" ] || [ "$DEVMODE" -eq 0 ]; then greeting && /bin/bash; fi
+if [ -z "$DEVMODE" ]; then greeting && /bin/bash; fi
