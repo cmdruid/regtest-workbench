@@ -11,6 +11,9 @@ ARGS_STR=""
 ENV_PATH=".env"
 LINE_OUT="/dev/null"
 
+DATAPATH="data"
+SHAREPATH="share"
+
 ###############################################################################
 # Usage
 ###############################################################################
@@ -100,7 +103,7 @@ check_binaries() {
 build_image() {
   printf "Building image for $IMG_NAME from dockerfile ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
-  DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT
+  DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
   if ! image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
 }
@@ -141,8 +144,7 @@ wipe_data() {
 
 cleanup() {
   status="$?" && [ $status -ne 0 ] \
-    && printf "Exiting with status: $status, cleaning up ..."  \
-    && printf "done.\n" && exit 0
+  && echo "Container exited with status: $status" && exit 0
 }
 
 ###############################################################################
@@ -156,8 +158,9 @@ main() {
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
-    --mount type=bind,source=$(pwd)/share,target=/share \
-    --mount type=volume,source=$DAT_NAME,target=/data \
+    --mount type=bind,source=$(pwd)/share,target=/$SHAREPATH \
+    --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
+    -e DATAPATH=/$DATAPATH -e SHAREPATH=/$SHAREPATH \
   $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $IMG_NAME:latest
 }
 
@@ -165,7 +168,7 @@ main() {
 # Script
 ###############################################################################
 
-set -E && trap cleanup TERM EXIT
+set -E && trap cleanup EXIT
 
 ## Parse arguments.
 for arg in "$@"; do
@@ -208,7 +211,7 @@ if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
 check_binaries()
 
 ## Create peers path if missing.
-if [ ! -d "share" ]; then mkdir share; fi
+if [ ! -d "$SHAREPATH" ]; then mkdir "$SHAREPATH"; fi
 
 ## If rebuild is declared, remove existing image.
 if image_exists $IMG_NAME && [ -n "$REBUILD" ]; then remove_image; fi
