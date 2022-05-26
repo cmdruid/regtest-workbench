@@ -9,6 +9,15 @@ RUN apt-get update && apt-get install -y \
   curl git iproute2 jq libevent-dev libsodium-dev lsof man netcat \
   openssl procps python3 python3-pip qrencode socat xxd neovim
 
+## Install python modules.
+RUN pip3 install Flask pyln-client
+
+## Install Node.
+RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && apt-get install -y nodejs
+
+## Install node packages.
+RUN npm install -g npm yarn
+
 ## Copy over binaries.
 COPY build/out/* /tmp/bin/
 
@@ -31,15 +40,6 @@ RUN rm -rf /tmp/* /var/tmp/*
 ## Uncomment this if you also want to wipe all repository lists.
 #RUN rm -rf /var/lib/apt/lists/*
 
-## Install python modules.
-RUN pip3 install Flask pyln-client
-
-## Install Node.
-RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && apt-get install -y nodejs
-
-## Install node packages.
-RUN npm install -g npm yarn
-
 ## Install sparko binary
 RUN PLUGPATH="$HOMEDIR/.lightning/plugins" && mkdir -p $PLUGPATH \
   && curl https://github.com/fiatjaf/sparko/releases/download/v2.9/sparko_linux_amd64 \
@@ -50,8 +50,6 @@ RUN PLUGPATH="$HOMEDIR/.lightning/plugins" && mkdir -p $PLUGPATH \
 #   && cd /root/.lightning \
 #   && git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git \
 #   && cd cl-rest && npm install
-
-WORKDIR $HOMEDIR
 
 ## Configure user account for Tor.
 # RUN addgroup tor \
@@ -70,8 +68,16 @@ RUN alias_file="~/config/.bash_aliases" \
 ## Make sure scripts are executable.
 RUN for file in `grep -lr '#!/usr/bin/env' $RUNPATH`; do chmod +x $file; done
 
-## Configure additional paths.
+## Symlink entrypoint to PATH.
+RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/start-node
+
+## Configure environment.
 ENV PATH="$LIBPATH/bin:$HOMEDIR/.local/bin:$PATH"
 ENV PYPATH="$LIBPATH/pylib:$PYPATH"
+ENV RUNPATH="$RUNPATH"
+ENV LIBPATH="$LIBPATH"
+ENV PLUGPATH="$RUNPATH/plugins"
 
-ENTRYPOINT [ "$RUNPATH/entrypoint.sh" ]
+WORKDIR $HOMEDIR
+
+ENTRYPOINT [ "start-node" ]
