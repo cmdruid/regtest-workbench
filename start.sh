@@ -217,6 +217,9 @@ check_binaries()
 echo $WORKPATH  ## Silly work-around for a silly bug.
 if [ ! -d "$WORKPATH/$SHAREPATH" ]; then mkdir -p "$WORKPATH/$SHAREPATH"; fi
 
+## Make sure to stop any existing container.
+if container_exists; then stop_container; fi
+
 ## If rebuild is declared, remove existing image.
 if image_exists $IMG_NAME && [ -n "$REBUILD" ]; then remove_image; fi
 
@@ -225,9 +228,6 @@ if ! image_exists $IMG_NAME || [ -n "$BUILD" ]; then build_image; fi
 
 ## If no existing network exists, create it.
 if ! network_exists; then create_network; fi
-
-## Make sure to stop any existing container.
-if container_exists; then stop_container; fi
 
 ## Purge data volume if flagged.
 if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
