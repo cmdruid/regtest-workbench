@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+## Fetch the current position of the cursor.
+
+echo -ne "\033[6n"            # ask the terminal for the position
+read -s -d\[ garbage          # discard the first part of the response
+read -s -d R pos              # store the position in bash variable 'foo'
+
+if [ "$1" = "x" ]; then 
+  printf $pos | awk -F ';' '{ print $2 }'
+elif [ "$1" = "y" ]; then
+  printf $pos | awk -F ';' '{ print $1 }'
+else
+  printf $pos
+fi
