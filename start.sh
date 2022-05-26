@@ -200,7 +200,7 @@ if [ -n "$DEVMODE" ]; then
   RUN_MODE="development"
   RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
-  RUN_MODE="normal"
+  RUN_MODE="safe"
   RUN_FLAGS="--restart unless-stopped"
 fi
 
@@ -210,7 +210,7 @@ if [ ! -d "share" ]; then mkdir share; fi
 ## If no existing network exists, create it.
 if ! network_exists; then create_network; fi
 
-## If additional mount points are specified, build a mount string.
+## If mount points are specified, build a mount string.
 if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
   src=`printf $point | awk -F ':' '{ print $1 }'`
   dest=`printf $point | awk -F ':' '{ print $2 }'`
@@ -218,9 +218,12 @@ if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
   MOUNTS="$MOUNTS --mount type=bind,source=$prefix$src,target=$dest"
 done; fi
 
-## If additional ports are specified, build a port string.
+## If ports are specified, build a port string.
 if [ -n "$ADD_PORTS" ]; then for port in `echo $ADD_PORTS | tr ',' ' '`; do
-  PORTS="$PORTS -p $port:$port"
+  src=`printf $port | awk -F ':' '{ print $1 }'`
+  dest=`printf $port | awk -F ':' '{ print $2 }'`
+  if [ -z "$dest" ]; then dest="$src"; fi
+  PORTS="$PORTS -p $src:$dest"
 done; fi
 
 ## Convert environment file into string.
