@@ -104,6 +104,7 @@ check_binaries() {
 }
 
 build_image() {
+  check_binaries
   printf "Building image for $IMG_NAME from dockerfile ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
@@ -208,9 +209,6 @@ DAT_NAME="$TAG.$DOMAIN.data"
 
 ## Check verbosity flag.
 if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
-
-## Check that required binaries exist.
-check_binaries
 
 ## Make sure sharepath is created.
 echo $WORKPATH  ## Silly work-around for a silly bug.
