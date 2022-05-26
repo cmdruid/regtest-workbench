@@ -8,7 +8,7 @@ import random, sys
 
 plugin = Plugin()
 
-@plugin.method("sendmessage")
+@plugin.method('sendmessage')
 def send_msg(plugin, peer_id, payload):
   """Messages are in the byte format of [type(2)][id(8)][data]."""
   msgtype = int(plugin.get_option('mtype'), 16)
@@ -19,13 +19,6 @@ def send_msg(plugin, peer_id, payload):
   res = plugin.rpc.call('sendcustommsg', {'node_id': peer_id, 'msg': msg.hex()})
   return "Message sent: {}".format(res)
 
-
-@plugin.init()
-def init(options, configuration, plugin):
-  """This can also return {'disabled': <reason>} to self-disable."""
-  plugin.log("Plugin messages initialized.")
-  return
-  
 
 @plugin.async_hook('custommsg')
 def on_custommsg(peer_id, payload, plugin, **kwargs):
@@ -41,15 +34,22 @@ def on_custommsg(peer_id, payload, plugin, **kwargs):
   return {'result': 'continue'}
 
 
-@plugin.subscribe("newmessage")
+@plugin.subscribe('newmessage')
 def on_newmessage(plugin, origin, payload, **kwargs):
   """Custom notifications include an origin and payload argument."""
   response = "Received new message from {}: {}".format(origin, payload)
   plugin.log(response)
   sys.stdout.write(response)
 
-plugin.add_notification_topic("newmessage")
+
+@plugin.init()
+def init(options, configuration, plugin):
+  """This can also return {'disabled': <reason>} to self-disable."""
+  plugin.log("Plugin messages initialized.")
+  return
+
+
+plugin.add_notification_topic('newmessage')
 plugin.add_option('mtype', '0xFFFF', 'Set the message type, in hex. Default 0xFFFF')
-plugin.add_option('usage', False, 'Print usage information about this method.', opt_type='flag')
 
 plugin.run()
