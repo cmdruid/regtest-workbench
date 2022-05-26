@@ -35,25 +35,25 @@ Use the `--mine` flag with your first node in order to initiate the chain. Your 
 
 By default, Your miner is configured to watch the mempool, then auto-mine blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds so that transactionswill confirm quickly. If you wish to deploy multiple miners, you should use longer timings in order to avoid chain splits.
 
-The format for configuring your mining node is `--mine=polltime,intervaltime,fuzzamount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
+The format for configuring your mining node is `--mine=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
 
-The `--peers` and `--channels` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and balance their channels accordingly!
+The `--peers` and `--channels` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and ~~balance their channels accordingly~~! *coming soon!*
 
 > Tip: *Use your initial miner node as your main faucet, since the block rewards will have made him filthy rich! Miners may also generate more blocks in order to procure funds if their wallet balance is low.*
 
 Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also make the endpoints on a given node available as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available.
 
-All the pertinent settings, keys and credentials for running nodes are namespaced and stored in the `/share` folder. Each node will mount and scan this folder in order to peer and communicate with other nodes. Files for a given node are refreshed when you restart that node, so feel free to modify a node's settings and data on a frequent basis!
+All the pertinent settings, keys and credentials for running nodes are namespaced and stored in the `/share` folder. Each node will mount and scan this folder in order to peer and communicate with other nodes. Files are refreshed when you restart a given node, so feel free to muck with the settings on a frequent basis!
 
-> Note: *This project is designed to automate completely over tor, using the `/share` folder. You can copy / distribute these files onto other machines and build a regtest network across the web!*
+> Note: *Nodes are designed to work completely over tor, using the `/share` folder. You can copy / distribute a node's shared files onto other machines and build a regtest network across the web!*
 
 Each node launches with a simple web-wallet for managing invoices and test payments (*provided by sparko*). Nodes will print their local address and login credentials to the console upon startup. You can also manage payments easily using `bitcoin-cli` and `lightning-cli`.
 
-The `./run/entrypoint.sh` startup script is the heart of each node, and is designed to be re-run as many times as you like. If you have a node with issues, try entering the console to run the script manually. The entrypoint script is very informative, and will help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process.
+The `run/entrypoint.sh` script is the heart of each node, and is designed to be re-run as many times as you like. If you have a node with issues, try entering the console to run the script manually. The entrypoint script is very informative, and will help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process.
 
-> Tip: *Use the `--interactive` flag to enter a node's console before the entrypoint script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)*
+> Tip: *Use the `--debug-mode` flag to enter a node's console before the startup script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)*
 
-All nodes ship with Flask and Nodejs included, plus a core library of tools for connecting to the underlying Bitcoin / Lightning daemons. Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
+All nodes ship with Flask and Nodejs included, plus a core library of development tools. Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
 
 ## Repository Overview
 
@@ -104,9 +104,11 @@ If tor is enabled for a given node, its share data can also be copied to other m
 
 There are two main modes to choose from when launching a container: **safe mode** and **development mode**. 
 
-By default, a node will launch in safe mode. This means the `/run` folder is copied at build time, and the container will run in the background once you exit the node terminal. The container is also configured to self-restart in the event of a crash.
+By default, a node will launch in safe mode. A copy of the `/run` folder is made at build time, and code changes to `/run` will not affect the node (unless you rebuild and re-launch). The node will continue to run in the background once you exit the node terminal. The node is also configured to self-restart in the event of a crash.
 
-When launching a node with the `--devmode` flag, a few things change. The `./run/entrypoint.sh` script will not start automatically, so you will have to call it yourself from the terminal. The `/run` folder will be mounted directly into the container, so you can modify the source code in real-time (these changes apply to *all* nodes, be careful!). Re-run the start script to apply changes. When you exit the terminal, the container is destroyed, however the internal `/data` store will persist.
+When launching a node with the `--devmode` flag, a few things change. The `./run/entrypoint.sh` script will not start automatically; you will have to call it yourself (use the `start-node` shortcut). The `/run` folder will be mounted directly into the container, so you can modify the source code in real-time.
+
+Any changes to the source code will apply to *all* nodes. Re-run the start script to apply changes. When you exit the terminal, the container will be instantly destroyed, however the internal `/data` store will persist.
 
 If you end up borking a node, use the `--wipe` flag at launch to erase the node's persistent storage. The start scripts are designed to be robust, and nodes are highly disposable. Feel free to crash, wipe, and re-launch nodes as often as you like!
 
