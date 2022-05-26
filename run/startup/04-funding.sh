@@ -219,8 +219,7 @@ if [ -n "$CHAN_LIST" ]; then
       if ! is_channel_confirmed $node_id; then
         printf "$IND Opening channel with $peer for $sat_amt sats.\n"
         printf "$IND Waiting for channel to confirm ."
-        lightning-cli fundchannel id=$node_id amount=$sat_amt \
-        minconf=1 push_msat=$sat_amt > /dev/null 2>&1
+        lightning-cli fundchannel id=$node_id amount=$sat_amt minconf=0 > /dev/null 2>&1
         while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
       fi
       printf "$IND Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"
