@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 ## Startup script for docker container.
 
 ###############################################################################
@@ -101,6 +101,7 @@ build_image() {
   printf "Building image for $IMG_NAME from dockerfile ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT
+  if ! image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
 }
 
@@ -108,6 +109,7 @@ remove_image() {
   printf "Removing existing image ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker image rm $IMG_NAME > $LINE_OUT 2>&1
+  if image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
 }
 
@@ -115,6 +117,7 @@ create_network() {
   printf "Creating network $NET_NAME ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker network create $NET_NAME > $LINE_OUT 2>&1;
+  if ! network_exists; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
 }
 
@@ -124,6 +127,7 @@ stop_container() {
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker container stop $SRV_NAME > $LINE_OUT 2>&1
   docker container rm $SRV_NAME > $LINE_OUT 2>&1
+  if container_exists; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
 }
 
@@ -131,7 +135,14 @@ wipe_data() {
   printf "Purging existing data volume ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker volume rm $DAT_NAME > $LINE_OUT 2>&1
+  if volume_exists; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
+}
+
+cleanup() {
+  status="$?" && [ $status -ne 0 ] \
+    && printf "Exiting with status: $status, cleaning up ..."  \
+    && printf "done.\n" && exit 0
 }
 
 ###############################################################################
@@ -154,7 +165,7 @@ main() {
 # Script
 ###############################################################################
 
-set -E
+set -E && trap cleanup TERM EXIT
 
 ## Parse arguments.
 for arg in "$@"; do
