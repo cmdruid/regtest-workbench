@@ -6,17 +6,17 @@
 ###############################################################################
 
 DEFAULT_DOMAIN="regtest"
-ENV_PATH=".env"
-TERM_OUT="/dev/null"
+
 ARGS_STR=""
-DOCKER_BUILDKIT=1
+ENV_PATH=".env"
+LINE_OUT="/dev/null"
 
 ###############################################################################
 # Usage
 ###############################################################################
 
 usage() {
-  printf %b\\n "
+  printf "
 Usage: $(basename $0) [ OPTIONS ] TAG
 
 Launch a docker container for bitcoin / lightning development.
@@ -51,7 +51,7 @@ Details:
 
 For more information, or if you want to report any bugs / issues, 
 please visit the github page: https://github.com:cmdruid/regtest-node
-"
+\n"
 }
 
 ###############################################################################
@@ -70,19 +70,19 @@ read_env() {
 }
 
 image_exists() {
-  docker image ls | grep $IMG_NAME > /dev/null 2>&1
+  [ -n "$1" ] && docker image ls | grep $1 > $LINE_OUT 2>&1
 }
 
 container_exists() {
-  docker container ls -a | grep $SRV_NAME > /dev/null 2>&1
+  docker container ls -a | grep $SRV_NAME > $LINE_OUT 2>&1
 }
 
 volume_exists() {
-  docker volume ls | grep $DAT_NAME > /dev/null 2>&1
+  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1
 }
 
 network_exists() {
-  docker network ls | grep $NET_NAME > /dev/null 2>&1
+  docker network ls | grep $NET_NAME > $LINE_OUT 2>&1
 }
 
 check_binaries() {
@@ -99,34 +99,39 @@ check_binaries() {
 
 build_image() {
   printf "Building image for $IMG_NAME from dockerfile ... "
-  docker build --tag $IMG_NAME . > $TERM_OUT
-  printf %b\\n "done."
+  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT
+  printf "done.\n"
 }
 
 remove_image() {
   printf "Removing existing image ... "
-  docker image rm $IMG_NAME > /dev/null 2>&1
-  printf %b\\n "done."
+  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  docker image rm $IMG_NAME > $LINE_OUT 2>&1
+  printf "done.\n"
 }
 
 create_network() {
   printf "Creating network $NET_NAME ... "
-  docker network create $NET_NAME > /dev/null 2>&1;
-  printf %b\\n "done."
+  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  docker network create $NET_NAME > $LINE_OUT 2>&1;
+  printf "done.\n"
 }
 
 stop_container() {
   ## Check if previous container exists, and remove it.
   printf "Stopping existing container ... "
-  docker container stop $SRV_NAME > /dev/null 2>&1
-  docker container rm $SRV_NAME > /dev/null 2>&1
-  printf %b\\n "done."
+  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  docker container stop $SRV_NAME > $LINE_OUT 2>&1
+  docker container rm $SRV_NAME > $LINE_OUT 2>&1
+  printf "done.\n"
 }
 
 wipe_data() {
   printf "Purging existing data volume ... "
-  docker volume rm $DAT_NAME > /dev/null 2>&1
-  printf %b\\n "done."
+  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  docker volume rm $DAT_NAME > $LINE_OUT 2>&1
+  printf "done.\n"
 }
 
 ###############################################################################
@@ -160,7 +165,7 @@ for arg in "$@"; do
     -r|--rebuild)      REBUILD=1;                        shift  ;;
     -w|--wipe)         WIPE=1;                           shift  ;;
     -i|--interactive)  DEVMODE=1;                        shift  ;;
-    -v|--verbose)      TERM_OUT="/dev/tty";              shift  ;;
+    -v|--verbose)      VERBOSE=1;                        shift  ;;
     -d=*|--domain=*)   DOMAIN=${arg#*=};                 shift  ;;
     -M=*|--mount=*)    ADD_MOUNTS=${arg#*=};             shift  ;;
     -P=*|--ports=*)    ADD_PORTS=${arg#*=};              shift  ;;
@@ -185,14 +190,29 @@ NET_NAME="$DOMAIN.net"
 SRV_NAME="$TAG.$DOMAIN.node"
 DAT_NAME="$TAG.$DOMAIN.data"
 
+## Check verbosity flag.
+if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
+
 ## Check that required binaries exist.
 check_binaries()
 
+## Create peers path if missing.
+if [ ! -d "share" ]; then mkdir share; fi
+
 ## If rebuild is declared, remove existing image.
-if image_exists && [ -n "$REBUILD" ]; then remove_image; fi
+if image_exists $IMG_NAME && [ -n "$REBUILD" ]; then remove_image; fi
 
 ## If no existing image is present, build it.
-if ! image_exists || [ -n "$BUILD" ]; then build_image; fi
+if ! image_exists $IMG_NAME || [ -n "$BUILD" ]; then build_image; fi
+
+## If no existing network exists, create it.
+if ! network_exists; then create_network; fi
+
+## Make sure to stop any existing container.
+if container_exists; then stop_container; fi
+
+## Purge data volume if flagged.
+if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Set run mode of container.
 if [ -n "$DEVMODE" ]; then
@@ -203,12 +223,6 @@ else
   RUN_MODE="safe"
   RUN_FLAGS="--restart unless-stopped"
 fi
-
-## Create peers path if missing.
-if [ ! -d "share" ]; then mkdir share; fi
-
-## If no existing network exists, create it.
-if ! network_exists; then create_network; fi
 
 ## If mount points are specified, build a mount string.
 if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
@@ -228,12 +242,6 @@ done; fi
 
 ## Convert environment file into string.
 if [ -e "$ENV_PATH" ]; then ENV_STR=`read_env $ENV_PATH`; fi
-
-## Make sure to stop any existing container.
-if container_exists; then stop_container; fi
-
-## Purge data volume if flagged.
-if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Call main container script.
 main
