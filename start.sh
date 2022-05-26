@@ -10,6 +10,7 @@ DEFAULT_DOMAIN="regtest"
 ARGS_STR=""
 ENV_PATH=".env"
 LINE_OUT="/dev/null"
+ESC_KEYS="ctrl-d"
 
 DATAPATH="data"
 SHAREPATH="share"
@@ -144,7 +145,7 @@ wipe_data() {
 
 cleanup() {
   status="$?" && [ $status -ne 0 ] \
-  && echo "Container exited with status: $status" && exit 0
+  && echo "Exited with status: $status" && exit 0
 }
 
 ###############################################################################
@@ -153,14 +154,13 @@ cleanup() {
 
 main() {
   ## Start container in runtime configuration.
-  echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
   docker run -it \
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
     --mount type=bind,source=$(pwd)/share,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
-    -e DATAPATH=/$DATAPATH -e SHAREPATH=/$SHAREPATH \
+    -e DATAPATH=/$DATAPATH -e SHAREPATH=/$SHAREPATH -e ESC_KEYS=$ESC_KEYS \
   $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $IMG_NAME:latest
 }
 
@@ -235,7 +235,7 @@ if [ -n "$DEVMODE" ]; then
   RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
   RUN_MODE="safe"
-  RUN_FLAGS="--restart unless-stopped"
+  RUN_FLAGS="-d --restart unless-stopped"
 fi
 
 ## If mount points are specified, build a mount string.
@@ -258,4 +258,5 @@ done; fi
 if [ -e "$ENV_PATH" ]; then ENV_STR=`read_env $ENV_PATH`; fi
 
 ## Call main container script.
-main
+echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
+if [ -n "$DEVMODE" ]; then main; else docker attach --detach-keys="$ESC_KEYS" `main`; fi
