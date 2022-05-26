@@ -8,7 +8,7 @@ set -E
 ###############################################################################
 
 DATA_PATH="/data/bitcoin"
-PEER_PATH="$SHARE_PATH/$HOSTNAME"
+PEER_PATH="$SHAREPATH/$HOSTNAME"
 
 FUND_FILE="$DATA_PATH/wallet.conf"
 PEER_FILE="$PEER_PATH/bitcoin-peer.conf"
@@ -33,7 +33,7 @@ is_peer_connected() {
 }
 
 get_peer_config() {
-  [ -n "$1" ] && find "$SHARE_PATH/$1"* -name $PEER_FILE
+  [ -n "$1" ] && find "$SHAREPATH/$1"* -name $PEER_FILE
 }
 
 is_wallet_loaded() {
@@ -100,10 +100,10 @@ if [ -z "$MIN_BLOCKS" ]; then MIN_BLOCKS=$DEFAULT_MIN_BLOCKS; fi
 if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
 
 ## Start bitcoin daemon.
-sh -c $LIB_PATH/start/bitcoin/bitcoind-start.sh
+sh -c $LIBPATH/start/bitcoin/bitcoind-start.sh
 
 ## Update share configuration.
-sh -c $WORK_PATH/lib/share/bitcoin-share-config.sh
+sh -c $LIBPATH/share/bitcoin-share-config.sh
 
 ###############################################################################
 # Wallet Configuration
@@ -146,7 +146,7 @@ if [ -n "$PEER_LIST" ]; then
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer: "
-    config=`find $SHARE_PATH/$peer* -name bitcoin-peer.conf`
+    config=`find $SHAREPATH/$peer* -name bitcoin-peer.conf`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi

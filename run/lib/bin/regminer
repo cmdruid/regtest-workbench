@@ -79,10 +79,6 @@ truncate_logs() {
   [ "$lines" -gt "$MAX_LOG_LINES" ] && sed -i "1,$slice d" $LOG_FILE
 }
 
-pipe() {
-  printf "$(fgc 215 "|")"
-}
-
 main() {
   while true; do
     if is_chain_synced; then
@@ -144,7 +140,7 @@ address="$1"
 
 ## Reset log file.
 if [ -e "$LOG_FILE" ]; then
-  printf %b\\n "Polling: ${POLLING}s, Interval: ${INTERVAL}s, Fuzz: ${FUZZ}s, Address: $address" > $LOG_FILE
+  printf "Polling: ${POLLING}s, Interval: ${INTERVAL}s, Fuzz: ${FUZZ}s, Address: $address\n" > $LOG_FILE
 fi
 
 ## Start main loop.
@@ -152,8 +148,8 @@ main &
 
 ## Print configuration to console.
 printf "Miner process started at PID: $(templ hlight "$!")" && templ ok
-printf %b\\n "$(pipe) Sending to address: $address"
-if [ "$((POLLING))" -ne 0 ];  then printf %b\\n "$(pipe) Scanning mempool every ${POLLING} seconds."; fi
-if [ "$((INTERVAL))" -ne 0 ]; then printf %b\\n "$(pipe) Producing blocks every ${INTERVAL} seconds."; fi
-if [ "$((FUZZ))" -ne 0 ];     then printf %b\\n "$(pipe) Using ${FUZZ} seconds of fuzziness."; fi
+printf "$(fgc 215 "|-") Sending to address: $address\n"
+if [ "$((POLLING))" -ne 0 ];  then printf "$(fgc 215 "|-") Scanning mempool every ${POLLING} seconds.\n"; fi
+if [ "$((INTERVAL))" -ne 0 ]; then printf "$(fgc 215 "|-") Producing blocks every ${INTERVAL} seconds.\n"; fi
+if [ "$((FUZZ))" -ne 0 ];     then printf "$(fgc 215 "|-") Using ${FUZZ} seconds of fuzziness.\n"; fi
 echo

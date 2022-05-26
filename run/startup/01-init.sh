@@ -13,12 +13,13 @@ set -E
 
 templ banner "Init Configuration"
 
-if [ -d "$SHARE_PATH/$HOSTNAME" ]; then
-  printf "Removing existing share configurations"
-  rm -r $SHARE_PATH/$HOSTNAME && mkdir -p "$SHARE_PATH/$HOSTNAME"
-  templ ok
+## Purge existing shared files.
+if [ -d "$SHAREPATH/$HOSTNAME" ]; then
+  printf "Purging existing share configurations"
+  rm -r $SHAREPATH/$HOSTNAME && templ ok
 fi
 
-if [ -n "$TOR_NODE" ]; then
-  sh -c $LIB_PATH/start/onion-start.sh
-fi
+mkdir -p "$SHAREPATH/$HOSTNAME" 
+
+## If tor enabled, call tor startup script.
+if [ -n "$TOR_NODE" ]; then sh -c $LIBPATH/start/onion-start.sh; fi

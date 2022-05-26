@@ -9,10 +9,12 @@ set -E
 
 DATA_PATH="/data/lightning"
 PLUG_PATH="$HOME/run/plugins"
-PEER_PATH="$SHARE_PATH/$HOSTNAME"
+PEER_PATH="$SHAREPATH/$HOSTNAME"
+LOGS_PATH="/var/log/lightning"
 
 PEER_FILE="$PEER_PATH/lightning-peer.conf"
 FUND_FILE="$DATA_PATH/fund.address"
+LOGS_FILE="$LOGS_PATH/lightningd.log"
 
 ###############################################################################
 # Methods
@@ -42,12 +44,16 @@ templ banner "Lightning Core Configuration"
 
 ## Create any missing paths.
 if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
+if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
+
+## Clear logs.
+##if [ -e "$LOGS_FILE" ]; then rm $LOGS_FILE && touch $LOGS_FILE; fi
 
 ## Start lightning daemon.
-sh -c $LIB_PATH/start/lightning/lightningd-start.sh
+sh -c $LIBPATH/start/lightning/lightningd-start.sh
 
 ## Start CL-REST Server
-#sh -c $LIB_PATH/start/lightning/cl-rest-start.sh
+#sh -c $LIBPATH/start/lightning/cl-rest-start.sh
 
 ###############################################################################
 # Payment Configuration
@@ -96,7 +102,7 @@ if [ -n "$PEER_LIST" ]; then
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer:"
-    config=`find "$SHARE_PATH/$peer"* -name lightning-peer.conf`
+    config=`find "$SHAREPATH/$peer"* -name lightning-peer.conf`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi

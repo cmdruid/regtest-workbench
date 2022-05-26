@@ -13,7 +13,7 @@ DATA_PATH="/data/lightning"
 CONF_PATH="$HOME/config/lightning"
 LINK_PATH="$HOME/.lightning"
 LOGS_PATH="/var/log/lightning"
-PEER_PATH="$SHARE_PATH/$HOSTNAME"
+PEER_PATH="$SHAREPATH/$HOSTNAME"
 
 CONF_FILE="$CONF_PATH/config"
 LINK_FILE="$LINK_PATH/config"
@@ -41,9 +41,6 @@ if [ -z "$(which $BIN_NAME)" ]; then echo "Binary for $BIN_NAME is missing!" && 
 DAEMON_PID=`lsof -c $BIN_NAME | grep "$(which $BIN_NAME)" | awk '{print $2}'`
 
 if [ -z "$DAEMON_PID" ]; then
-  
-  ## Create any missing paths.
-  if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 
   ## Make sure configuration file is linked.
   if [ ! -e "$LINK_FILE" ]; then
@@ -64,7 +61,7 @@ if [ -z "$DAEMON_PID" ]; then
 
   ## Configure sparko keys.
   printf "Adding sparko key configuration to lightningd"
-  config="$config $(sh -c $LIB_PATH/share/sparko-share-config.sh)"
+  config="$config $(sh -c $LIBPATH/share/sparko-share-config.sh)"
   templ ok
 
   ## Link the regtest interface for compatibility.
@@ -89,8 +86,8 @@ else
 fi
 
 ## Update share configuration.
-printf "Updating lightning configuration files in $SHARE_PATH"
-sh -c $WORK_PATH/lib/share/lightning-share-config.sh
+printf "Updating lightning configuration files in $SHAREPATH"
+sh -c $LIBPATH/share/lightning-share-config.sh
 if [ -e "$KEYS_FILE" ]; then cp $KEYS_FILE "$PEER_PATH"; fi
 if [ -e "$CRED_FILE" ]; then cp $CRED_FILE "$PEER_PATH"; fi
 templ ok
