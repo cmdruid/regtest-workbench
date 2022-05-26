@@ -103,7 +103,7 @@ if [ -n "$USE_FAUCET" ]; then
 
   ## Search for peer file in peers path.
   printf "Checking faucet configuration:\n"
-  config=`find "$SHARE_PATH/$USE_FAUCET"* -name bitcoin-peer.conf`
+  config=`find "$SHAREPATH/$USE_FAUCET"* -name bitcoin-peer.conf`
 
   ## Exit out if peer file is not found.
   if [ ! -e "$config" ]; then templ fail && continue; fi
@@ -205,7 +205,7 @@ if [ -n "$CHAN_LIST" ]; then
 
     ## Search for peer file in peers path.
     echo && printf "Checking channel with $peer:\n"
-    config=`find $SHARE_PATH/$peer* -name lightning-peer.conf`
+    config=`find $SHAREPATH/$peer* -name lightning-peer.conf`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi

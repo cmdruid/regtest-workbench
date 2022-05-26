@@ -7,7 +7,7 @@
 
 ONION_FILE="/data/tor/services/btc/hostname"
 CRED_FILE="/data/bitcoin/credentials.conf"
-PEER_FILE="$SHARE_PATH/$HOSTNAME/bitcoin-peer.conf"
+PEER_FILE="$SHAREPATH/$HOSTNAME/bitcoin-peer.conf"
 
 RPC_PORT=18443
 PEER_PORT=18444
