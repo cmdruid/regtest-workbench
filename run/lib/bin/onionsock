@@ -146,6 +146,6 @@ kill_port $PORT
 main && sleep $WAIT_TIME &
 
 ## Print success message.
-printf "$(fgc 215 "|") Opening socat tunnel under PID: $(templ hlight "$!")\n"
-printf "$(fgc 215 "|") Created on port $PORT and redirecting to:\n"
-printf "$(fgc 215 "|") http://$DEST_HOST:$DEST_PORT\n"
+printf "$(fgc 215 "|-") Opening socat tunnel under PID: $(templ hlight "$!")\n"
+printf "$(fgc 215 "|-") Created on port $PORT and redirecting to:\n"
+printf "$(fgc 215 "|-") http://$DEST_HOST:$DEST_PORT\n"
