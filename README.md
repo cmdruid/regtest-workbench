@@ -10,7 +10,7 @@ To spin up a basic network of three nodes:
 
 ```shell
 ## Clone this repository, and make it your working directory.
-git clone "this repository url" && cd regtest-node
+git clone "https://github.com/cmdruid/regtest-node.git" && cd regtest-node
 
 ## Compiles all the binaries that we will need. May take a while!
 ./start.sh --compile
@@ -22,7 +22,7 @@ git clone "this repository url" && cd regtest-node
 ./start.sh --faucet=master --peers=master alice
 
 ## Meet Bob, also funded by master, who connects to Alice and opens a channel.
-./start/sh --faucet=master --peers=alice --channels=alice bob
+./start.sh --faucet=master --peers=alice --channels=alice bob
 
 ## ... repeat for as many nodes as you like!
 
@@ -59,17 +59,19 @@ All nodes ship with Flask and Nodejs included, plus a core library of tools for 
 
 ### \#\# ./build
 
-This path contains the build script, related dockerfiles, and compiled binaries. When you run the `start.sh` script, it will fist scan the `build/dockerfiles` and `build/out` path in order to compare files. If a binary appears to be missing, the start script will then call the build script (with the related dockerfile), and request to build the missing binary from source.
+This path contains the build script, related dockerfiles, and compiled binaries. When you run the `start.sh` script, it will fist scan the `build/dockerfiles` and `build/out` path in order to compare files. If a binary appears to be missing, the start script will then call the build script (with the related dockerfile), and request to build the missing binary from source. Compiled binaries are then copied `build/out`.
 
 If you have just cloned this repositry, it's best to run `./start.sh --compile` as a first step, so that launching your first node doesn't force you to compile everything at once.
 
-Any compressed binaries located in `build/out` are copied and installed at build time, so feel free to add your own. The script recognizes tar.gz compression, and will strip the first folder before unpacking into `/usr`, so make sure to pack your binaries accordingly.
+All files located in `build/out` are copied over to the main docker image and installed at build time, so feel free to include any binaries you wish! The script recognizes tar.gz compression, and will strip the first folder before unpacking into `/usr`, so make sure to pack your binaries accordingly.
 
-You can also add your own dockerfiles, or modify the existing ones in order to try different builds and versions. For adding custom dockerfiles, make sure your dockerfile produces a compiled binary with a matching substring, so the start script can correctly determine which baineies are present / missing.
+You can also add your own `build/dockerfiles`, or modify the existing ones in order to try different builds and versions. If you add a custom dockerfile, make sure it also names the binary with a matching substring, so the start script can correctly determine if your binary is present / missing.
 
 ### \#\# ./config
 
 These are the configuration files used by the main services in the stack. The entire config folder is copied at build time, located at `/root/config` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container.
+
+The `.bash_aliases` file is also loaded upon startup, feel free to use it to customize your environment!
 
 ### \#\# ./contrib
 
@@ -92,15 +94,29 @@ The entire run folder is copied at build time, located at `/root/run` in the ima
 
 ### \#\# ./share
 
-Each node will mount this folder at runtime, then create and manage their own folder and configuration data. Each folder is namespaced after a node's hostname, and used by other nodes in order to peer and connect to its services. These files are constantly created and destroyed by their respective nodes, so that the data remains fresh and accurate.
+Each node will mount this folder on startup, then use it as a shared repository for providing their own configuration data. Each folder is namespaced after a node's hostname, and used by other nodes in order to peer and connect with each other. These files are constantly created and destroyed by their respective nodes, so that the data remains fresh and accurate.
+
+If tor is enabled for a given node, its share data can also be copied to other machines for more complex configurations.
 
 ## Development
 
 *Work in progress. Feel free to hack the project on your own!*
 
+There are two main modes to choose from when launching a container: **safe mode** and **development mode**. 
+
+By default, a node will launch in safe mode. This means the `/run` folder is copied at build time, and the container will run in the background once you exit the node terminal. The container is also configured to self-restart in the event of a crash.
+
+When launching a node with the `--devmode` flag, a few things change. The `./run/entrypoint.sh` script will not start automatically, so you will have to call it yourself from the terminal. The `/run` folder will be mounted directly into the container, so you can modify the source code in real-time (these changes apply to *all* nodes, be careful!). Re-run the start script to apply changes. When you exit the terminal, the container is destroyed, however the internal `/data` store will persist.
+
+If you end up borking a node, use the `--wipe` flag at launch to erase the node's persistent storage. The start scripts are designed to be robust, and nodes are highly disposable. Feel free to crash, wipe, and re-launch nodes as often as you like!
+
+To mount a folder into your node environment, use the format `--mount=local/path1:/mount/path1,local/path2:/mount/path2, ...`, using a comma to separate mount points, and colon to separate local:mount paths. Paths can be relative or absolute.
+
+To open and forward ports from your node environment, use the format `--ports=src1:dest1,src2:dest2, ...`, using a comma to separate port declarations, and colon to separate source:dest ports.
+
 ## Contribution
 
-All contributions are welcome! If you have any questions, feel free to send me a message or submit an issue.
+All suggestions and contributions are welcome! If you have any questions about this project, feel free to submit an issue up above, or contact me on social media.
 
 ## Tools
 
@@ -113,6 +129,10 @@ https://lnurl.fiatjaf.com/codec
 A great resource for documentation on Bitcoin's RPC interface, and other technical details.  
 https://developer.bitcoin.org/reference/index.html
 
+**Bitcoin Github Docs**  
+Another great resource for all things related to Bitcoin Core.  
+https://github.com/bitcoin/bitcoin/tree/master/doc
+
 **Core Lightning Documentation**  
 The go-to resource for Core Lightning's RPC interface.  
 https://lightning.readthedocs.io
@@ -121,17 +141,21 @@ https://lightning.readthedocs.io
 Documentation for the REST interface that is provided by the RTL team.  
 https://github.com/Ride-The-Lightning/c-lightning-REST#apis
 
+**Bolt 12 Landing Page**  
+A nice landing page for info regarding the Bolt 12 specification.  
+https://bolt12.org
+
 **Sparko Client**  
-Incredibly useful web-RTC interface and web-client for Core Lightning.  
+Incredibly useful web-rpc interface and web-client for Core Lightning.  
 https://github.com/fiatjaf/sparko-client
 
 **Pyln-client**  
-The main library for interfacing with Core Lightning over RTC. Very powerful.  
+The main library for interfacing with Core Lightning over RPC. Very powerful.  
 https://github.com/ElementsProject/lightning/tree/master/contrib/pyln-client
 
-**clightningjs**  
-The javascript version of an RTC interface and library for Core Lightning.  
-https://github.com/lightningd/clightningjs
+**Python Documentation**  
+Official resource for the python language.  
+https://docs.python.org/3
 
 **Flask Documentation**  
 The go-to resource for documentation on using Flask.  
