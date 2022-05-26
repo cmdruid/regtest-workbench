@@ -210,8 +210,7 @@ DAT_NAME="$TAG.$DOMAIN.data"
 if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
 
 ## Check that required binaries exist.
-check_binaries()
-
+check_binaries
 
 ## Make sure sharepath is created.
 echo $WORKPATH  ## Silly work-around for a silly bug.
