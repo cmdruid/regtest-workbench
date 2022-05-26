@@ -9,11 +9,13 @@ DEFAULT_DOMAIN="regtest"
 
 ARGS_STR=""
 ENV_PATH=".env"
+WORKPATH="$PWD"
 LINE_OUT="/dev/null"
 ESC_KEYS="ctrl-d"
 
 DATAPATH="data"
 SHAREPATH="share"
+
 
 ###############################################################################
 # Usage
@@ -158,7 +160,7 @@ main() {
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
-    --mount type=bind,source=$(pwd)/share,target=/$SHAREPATH \
+    --mount type=bind,source=$WORKPATH/$SHAREPATH,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
     -e DATAPATH=/$DATAPATH -e SHAREPATH=/$SHAREPATH -e ESC_KEYS=$ESC_KEYS \
   $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $IMG_NAME:latest
@@ -210,8 +212,10 @@ if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
 ## Check that required binaries exist.
 check_binaries()
 
-## Create peers path if missing.
-if [ ! -d "$SHAREPATH" ]; then mkdir "$SHAREPATH"; fi
+
+## Make sure sharepath is created.
+echo $WORKPATH  ## Silly work-around for a silly bug.
+if [ ! -d "$WORKPATH/$SHAREPATH" ]; then mkdir -p "$WORKPATH/$SHAREPATH"; fi
 
 ## If rebuild is declared, remove existing image.
 if image_exists $IMG_NAME && [ -n "$REBUILD" ]; then remove_image; fi
@@ -230,7 +234,7 @@ if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Set run mode of container.
 if [ -n "$DEVMODE" ]; then
-  DEV_MOUNT="type=bind,source=$(pwd)/run,target=/root/run"
+  DEV_MOUNT="type=bind,source=$WORKPATH/run,target=/root/run"
   RUN_MODE="development"
   RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
@@ -242,7 +246,7 @@ fi
 if [ -n "$ADD_MOUNTS" ]; then for point in `echo $ADD_MOUNTS | tr ',' ' '`; do
   src=`printf $point | awk -F ':' '{ print $1 }'`
   dest=`printf $point | awk -F ':' '{ print $2 }'`
-  if [ -z "$(echo $point | grep -E '^/')" ]; then prefix="$(pwd)/"; fi
+  if [ -z "$(echo $point | grep -E '^/')" ]; then prefix="$WORKPATH/"; fi
   MOUNTS="$MOUNTS --mount type=bind,source=$prefix$src,target=$dest"
 done; fi
 
