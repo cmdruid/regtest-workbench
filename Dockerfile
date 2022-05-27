@@ -68,8 +68,8 @@ RUN alias_file="~/config/.bash_aliases" \
 ## Make sure scripts are executable.
 RUN for file in `grep -lr '#!/usr/bin/env' $RUNPATH`; do chmod +x $file; done
 
-## Symlink entrypoint to PATH.
-RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/start-node
+## Symlink entrypoint and login to PATH.
+RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/entrypoint
 
 ## Configure environment.
 ENV PATH="$LIBPATH/bin:$HOMEDIR/.local/bin:$PATH"
@@ -80,4 +80,4 @@ ENV PLUGPATH="$RUNPATH/plugins"
 
 WORKDIR $HOMEDIR
 
-ENTRYPOINT [ "start-node" ]
+ENTRYPOINT [ "entrypoint" ]
