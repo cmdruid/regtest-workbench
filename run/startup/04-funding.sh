@@ -25,6 +25,10 @@ FAUCET_DELAY=0
 # Methods
 ###############################################################################
 
+get_peer_config() {
+  [ -n "$1" ] && [ -n "$2" ] && find "$SHAREPATH/$1"* -name $2 2>&1
+}
+
 greater_than() {
   [ -n "$1" ] && [ -n "$2" ] && \
   [ -n "$(echo "$1 $2" | awk '{ print ($1>=$2) }' | grep 1)" ]
@@ -62,15 +66,9 @@ is_channel_funded() {
   [ -n "$1" ] && [ "$(lcli peerchannelbalance "$1")" != "0" ]
 }
 
-finish() {
-  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
-}
-
 ###############################################################################
 # Script
 ###############################################################################
-
-trap finish EXIT
 
 templ banner "Funding Configuration"
 
@@ -103,7 +101,7 @@ if [ -n "$USE_FAUCET" ]; then
 
   ## Search for peer file in peers path.
   printf "Checking faucet configuration:\n"
-  config=`find "$SHAREPATH/$USE_FAUCET"* -name bitcoin-peer.conf`
+  config=`get_peer_config $USE_FAUCET bitcoin-peer.conf`
 
   ## Exit out if peer file is not found.
   if [ ! -e "$config" ]; then templ fail && continue; fi
@@ -205,7 +203,7 @@ if [ -n "$CHAN_LIST" ]; then
 
     ## Search for peer file in peers path.
     echo && printf "Checking channel with $peer:\n"
-    config=`find $SHAREPATH/$peer* -name lightning-peer.conf`
+    config=`get_peer_config $peer lightning-peer.conf`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi

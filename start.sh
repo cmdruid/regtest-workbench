@@ -130,7 +130,7 @@ create_network() {
 
 stop_container() {
   ## Check if previous container exists, and remove it.
-  printf "Stopping existing container ... "
+  printf "Purging existing container ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker container stop $SRV_NAME > $LINE_OUT 2>&1
   docker container rm $SRV_NAME > $LINE_OUT 2>&1
@@ -147,8 +147,9 @@ wipe_data() {
 }
 
 cleanup() {
-  status="$?" && [ $status -ne 0 ] \
-  && echo "Exited with status: $status" && exit 0
+  status="$?"
+  [ $status -ne 1 ] && stop_container && echo "Clean exit with status: $status" && exit 0
+  [ $status -eq 1 ] && echo "You are now logged out. Node running in the background."
 }
 
 ###############################################################################
@@ -163,7 +164,7 @@ main() {
     --network $NET_NAME \
     --mount type=bind,source=$WORKPATH/$SHAREPATH,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
-    -e DATAPATH=/$DATAPATH -e SHAREPATH=/$SHAREPATH -e ESC_KEYS=$ESC_KEYS \
+    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" -e ESC_KEYS="$ESC_KEYS" \
   $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $IMG_NAME:latest
 }
 
@@ -211,10 +212,10 @@ DAT_NAME="$TAG.$DOMAIN.data"
 if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
 
 ## Make sure sharepath is created.
-echo $WORKPATH  ## Silly work-around for a silly bug.
+echo $WORKPATH > /dev/null ## Silly work-around for a silly bug.
 if [ ! -d "$WORKPATH/$SHAREPATH" ]; then mkdir -p "$WORKPATH/$SHAREPATH"; fi
 
-## Make sure to stop any existing container.
+## If there's an existing container, remove it.
 if container_exists; then stop_container; fi
 
 ## If rebuild is declared, remove existing image.

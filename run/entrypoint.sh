@@ -13,29 +13,43 @@ IND=`fgc 215 "|-"`
 # Methods
 ###############################################################################
 
-greeting() {
+safe_greeting() {
   printf "Press '$(fgc 220 $ESC_KEYS)' to detatch from the terminal. Your node will continue to run in the background.
 You can re-enter this terminal with the command '$(fgc 220 "docker exec -it $HOSTNAME bash")'.\n\n"
 }
 
+dev_greeting() {
+  printf "Now running in dev-mode. Type '$(fgc 220 exit)' to quit this session and terminate the node.
+  If you experience any issues, use the '$(fgc 220 start-node)' command to re-run this startup script.\n\n"
+}
+
+finish() {
+  status="$?"
+  [ $status -ne 0 ] && printf "\nFailed with exit code $state" && templ fail
+  [ -z "$DEVMODE" ] && cleanup || exit 0
+}
+
 cleanup() {
-  status="$?" && [ $status -ne 0 ] || [ -n "$DEVMODE" ] \
-    && printf "Exiting with status $?. Cleaning up ..." \
-    && rm -r "$SHAREPATH/$HOSTNAME" && printf "done.\n" && exit 0
+  if [ -z "$DEVMODE" ]; then
+    printf "Delisting $SHAREPATH/$HOSTNAME ... "
+    rm -rf "$SHAREPATH/$HOSTNAME"
+    printf "done. " && exit 0
+  fi
 }
 
 ###############################################################################
 # Script
 ###############################################################################
 
-trap cleanup SIGTERM SIGKILL EXIT
+trap finish EXIT; trap cleanup SIGTERM SIGKILL
 
 ## Add a little delay for docker to attach the tty properly.
 if [ -z "$DEVMODE" ]; then sleep 1; fi
 
 ## Execute startup scripts.
 for script in `find $RUNPATH/startup -name *.sh | sort`; do
-  IND=$IND sh -c $script
+  IND=$IND sh -c $script; state="$?"
+  if [ $state -ne 0 ]; then exit $state; fi
 done
 
 ## Print a fancy banner depending on startup success / failure.
@@ -58,5 +72,5 @@ else
 
 fi
 
-## Setup session for safe mode.
-if [ -z "$DEVMODE" ]; then greeting && /bin/bash; fi
+## Greet user and setup terminal session.
+if [ -z "$DEVMODE" ]; then safe_greeting; /bin/bash; else dev_greeting; fi

@@ -20,6 +20,10 @@ LOGS_FILE="$LOGS_PATH/lightningd.log"
 # Methods
 ###############################################################################
 
+get_peer_config() {
+  [ -n "$1" ] && find "$SHAREPATH/$1"* -name lightning-peer.conf 2>&1
+}
+
 is_node_configured() {
   [ -n "$1" ] && [ -n "$(lcli getpeerlist | grep $1)" ]
 }
@@ -28,15 +32,9 @@ is_node_connected() {
   [ -n "$1" ] && [ -n "$(lcli getconnectedpeers | grep $1)" ]
 }
 
-finish() {
-  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
-}
-
 ###############################################################################
 # Script
 ###############################################################################
-
-trap finish EXIT
 
 if [ -z "$(pgrep bitcoind)" ]; then echo "Bitcoind is not running!" && exit 1; fi
 
@@ -102,7 +100,7 @@ if [ -n "$PEER_LIST" ]; then
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer:"
-    config=`find "$SHAREPATH/$peer"* -name lightning-peer.conf`
+    config=`get_peer_config $peer`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi
