@@ -87,7 +87,7 @@ fi
 
 ## Update share configuration.
 printf "Updating lightning configuration files in $SHAREPATH"
-sh -c $LIBPATH/share/lightning-share-config.sh
+$LIBPATH/share/lightning-share-config.sh
 if [ -e "$KEYS_FILE" ]; then cp $KEYS_FILE "$PEER_PATH"; fi
 if [ -e "$CRED_FILE" ]; then cp $CRED_FILE "$PEER_PATH"; fi
 templ ok
