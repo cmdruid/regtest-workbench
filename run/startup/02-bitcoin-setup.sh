@@ -33,7 +33,11 @@ is_peer_connected() {
 }
 
 get_peer_config() {
-  [ -n "$1" ] && find "$SHAREPATH/$1"* -name $PEER_FILE
+  [ -n "$1" ] && find "$SHAREPATH/$1"* -name bitcoin-peer.conf 2>&1
+}
+
+get_peer_count() {
+  bitcoin-cli getconnectioncount
 }
 
 is_wallet_loaded() {
@@ -62,31 +66,26 @@ greater_than() {
   [ -n "$(echo "$1 $2" | awk '{ print ($1>=$2) }' | grep 1)" ]
 }
 
-get_ibd_state() {
-  state=`bitcoin-cli getblockchaininfo | jgrep initialblockdownload`
-  [ "$state" = "true" ]
+incomplete_chain() {
+  [ "$(bitcoin-cli getblockchaininfo | jgrep initialblockdownload)" = "true" ]
+}
+
+new_blockchain() {
+  chainwork=`bitcoin-cli getblockchaininfo | jgrep chainwork` && [ "$((chainwork + 0))" -lt 3 ]
 }
 
 timeout_child() {
   trap -- "" TERM
   child=$!
   timeout=$1
-  msg=" timed out after $1 seconds.\n"
+  msg="\n$IND timed out after $1 seconds."
   ( sleep $timeout; if ps | grep $child > /dev/null; then kill $child && printf "$msg"; fi ) &
   wait $child 2>/dev/null
-}
-
-finish() {
-  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
 }
 
 ###############################################################################
 # Script
 ###############################################################################
-
-trap finish EXIT
-
-if [ "$?" -ne 0 ]; then exit 1; fi
 
 templ banner "Bitcoin Core Configuration"
 
@@ -146,7 +145,7 @@ if [ -n "$PEER_LIST" ]; then
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer: "
-    config=`find $SHAREPATH/$peer* -name bitcoin-peer.conf`
+    config=`get_peer_config $peer`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi
@@ -176,40 +175,58 @@ fi
 # Blockchain Config
 ###############################################################################
 
-## Wait for blockchain to sync with peers.
-if [ "$((peer_connections))" -ne 0 ] && get_ibd_state; then
-  echo && printf "Waiting (up to ${BLOCK_SYNC_TIMEOUT}s) for blockchain to sync with peers ."
-  ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_SYNC_TIMEOUT
-  templ ok
-fi
-
-if [ -n "$SEED_NODE" ]; then
-  ## Check if variable specifies an amount of blocks.
-  if [ "$((SEED_NODE))" -gt 1 ]; then MIN_BLOCKS=$SEED_NODE; fi
-
-  ## Check if current block height meets the minimum.
-  blocks=`bitcoin-cli getblockcount`
-  address=`cat $FUND_FILE | kgrep ADDRESS`
-  if [ "$((blocks))" -lt "$((MIN_BLOCKS))" ]; then
-    block_amt="$((MIN_BLOCKS - blocks))"
-    printf "Mining $block_amt blocks to address $address"
-    bitcoin-cli generatetoaddress $block_amt $address > /dev/null 2>&1
-    templ ok
+echo && printf "Blockchain state: "
+if incomplete_chain; then
+  ## Blockchain download is incomplete.
+  if ! new_blockchain; then
+    ## Previous chain exists on disk.
+    printf "$(templ hlight 'CONNECTING' 255 220)"
+    if get_peer_count; then
+      ## Connected to existing peers on the network.
+      printf "\n$IND Waiting (up to ${BLOCK_SYNC_TIMEOUT}s) for blockchain to sync with peers ."
+      ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_SYNC_TIMEOUT
+      if incomplete_chain; then printf "timed out!" && templ skip && exit 1; else templ ok; fi
+    elif [ -n "$PEER_LIST" ]; then
+      ## Unable to connect to any peers.
+      printf "\n$IND Failed to connect to any peers!" && templ fail && exit 1
+    else
+      ## No peers are available to sync.
+      printf "\n$IND No peers available to connect!" && templ skip && exit 1
+    fi
+  elif [ -n "$MINE_NODE" ]; then
+    ## Check how many blocks we need to initialize the chain.
+    printf "$(templ hlight 'INITIALIZING' 255 220)"
+    printf "\n$IND Checking block height:"
+    blocks=`bitcoin-cli getblockcount`
+    if [ "$((blocks))" -lt "$((MIN_BLOCKS))" ]; then
+      ## Block height is too low, must generate blocks..
+      block_amt="$((MIN_BLOCKS - blocks))"
+      address=`cat $FUND_FILE | kgrep ADDRESS`
+      printf "\n$IND Block height is too low!"
+      printf "\n$IND Coinbase address: $address"
+      bitcoin-cli generatetoaddress $block_amt $address > /dev/null 2>&1
+      printf "\n$IND Generated $block_amt blocks" && templ ok
+    else
+      printf "\n$IND Blockchain already initialized!" && templ skip && exit 1
+    fi
+  else
+    printf "$(templ hlight 'NOT INITIALIZED' 255 160)"
+    printf "\n$IND No miners or peers available to bootstrap the blockchain!"
+    printf "\n$IND You must specify a peer, or add a miner to this node." && templ fail && exit 1
   fi
+else
+  printf "$(templ hlight 'SYNCHRONIZED' 255 033)" && templ ok
 fi
 
 if [ -n "$MINE_NODE" ]; then
-  address=`cat $FUND_FILE | kgrep ADDRESS`
-  ## Check if a mining schedule is specified.
+  ## Set the mining configuration, if specified.
   if [ "$MINE_NODE" != "DEFAULT" ]; then schedule="--schedule=$MINE_NODE"; fi
   ## Run regminer if not already running.
-  if [ -n "$(regminer --check)" ]; then regminer --kill; fi
-  echo && regminer $schedule $address
-fi
-
-echo && chainstatus="$(bitcoin-cli -getinfo | grep 100.0000%)"
-if [ -n "$chainstatus" ]; then 
-  printf %s "Blockchain $chainstatus"; templ ok
-else 
-  printf "Failed to sync blockchain with network!"; templ fail && exit 1
+  echo && miner_pid="$(regminer --check)"
+  if [ -z "$miner_pid" ]; then 
+    address=`cat $FUND_FILE | kgrep ADDRESS`
+    regminer $schedule $address
+  else
+    printf "Miner process running at PID: $(templ hlight "$miner_pid")" && templ ok
+  fi
 fi
