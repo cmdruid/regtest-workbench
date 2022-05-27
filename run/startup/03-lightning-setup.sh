@@ -3,6 +3,8 @@
 
 set -E
 
+. $LIBPATH/util/timers.sh
+
 ###############################################################################
 # Environment
 ###############################################################################
@@ -48,7 +50,7 @@ if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 ##if [ -e "$LOGS_FILE" ]; then rm $LOGS_FILE && touch $LOGS_FILE; fi
 
 ## Start lightning daemon.
-sh -c $LIBPATH/start/lightning/lightningd-start.sh
+$LIBPATH/start/lightning/lightningd-start.sh
 
 ## Start CL-REST Server
 #sh -c $LIBPATH/start/lightning/cl-rest-start.sh
@@ -121,7 +123,8 @@ if [ -n "$PEER_LIST" ]; then
       printf "\n$IND Connecting to node"
     fi
 
-    while ! is_node_connected $node_id; do sleep 1 && printf "."; done; templ conn
+    ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child
+    ( [ $? -eq 0 ] && templ conn ) || templ tout
 
   done
 fi
