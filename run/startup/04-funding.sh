@@ -128,9 +128,10 @@ if [ -n "$USE_FAUCET" ]; then
   FAUCET_WALLET=`bitcoin-cli $FAUCET_CONF listwallets | tr -d "\" " | tail -n +2 | head -n 1`
 
   if [ -z "$FAUCET_WALLET" ]; then 
-    printf "$IND Faucet configuration failed! Check params:" && templ fail
-    printf "$IND '-rpcconnect=$peer_host -rpcport=$rpc_port'\n"
-    printf "$IND '-rpcuser=$rpc_user -rpcpassword=$rpc_pass'\n"
+    printf "$IND Faucet configuration failed!" && templ fail
+    printf "$IND Check RPC configuration:\n"
+    printf "$IND rpcconnect=$peer_host rpcport=$rpc_port\n"
+    printf "$IND rpcuser=$rpc_user rpcpassword=$rpc_pass\n"
   else
     printf "$IND Connected to faucet \"$FAUCET_WALLET\" wallet." && templ conn 
   fi
@@ -143,16 +144,12 @@ btc_balance=`get_btc_balance`
 
 ## If bitcoin balance is low, get funds from faucet.
 if ! greater_than $btc_balance $MIN_FUNDS; then
-  echo && printf "$IND Bitcoin funds are low! Searching for funding ...\n"
+  echo && printf "$IND Bitcoin funds are low!\n"
   if [ -n "$MINE_NODE" ]; then
-    printf "$IND Mining 5 blocks for funds ...\n"
-    bitcoin-cli generatetoaddress 5 $btc_address > /dev/null 2>&1
+    printf "$IND Mining 150 blocks for funds ...\n"
+    bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
     if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-      printf "$IND Block height too low! Mining 150 more blocks ...\n"
-      bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
-      if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-        printf "$IND We are still broke! Something is wrong!" && templ fail && exit 1
-      fi
+      printf "$IND We are still broke! Something is wrong!" && templ fail && exit 1
     fi
   elif [ -n "$USE_FAUCET" ] && [ -n "$FAUCET_WALLET" ]; then
     printf "$IND Checking faucet ...\n"
