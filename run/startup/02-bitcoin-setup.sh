@@ -168,7 +168,7 @@ if incomplete_chain; then
     fi
   elif [ -n "$MINE_NODE" ]; then
     ## Check how many blocks we need to initialize the chain.
-    printf "$(templ hlight 'BUILDING' 255 215)"
+    printf "$(templ hlight 'BUILDING' 255 055)"
     printf "\n$IND Checking block height:"
     blocks=`bitcoin-cli getblockcount`
     if [ "$((blocks))" -lt "$((MIN_BLOCKS))" ]; then
