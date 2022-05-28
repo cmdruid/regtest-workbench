@@ -8,7 +8,7 @@
 PATH_NAME=`dirname $1`
 FILE_NAME=`basename $1`
 BASE_NAME=`basename -s .dockerfile $1`
-BUILDPATH="$(dirname "$(realpath "$0")")"
+DEFAULT_BUILDPATH="$(pwd)"
 
 ###############################################################################
 # Methods
@@ -27,6 +27,9 @@ usage() {
 ###############################################################################
 
 set -e
+
+## Set default build path.
+if [ -z "$BUILDPATH" ]; then BUILDPATH=$DEFAULT_BUILDPATH; fi
 
 ## Check input argument.
 if [ -z "$1" ] ; then

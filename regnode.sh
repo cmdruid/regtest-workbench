@@ -8,7 +8,7 @@
 DEFAULT_DOMAIN="regtest"  
      
 DENVPATH=".env"         ## Path to your local .env file.
-WORKPATH="$PWD"         ## Absolute path to use for this directory.
+WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
 ESC_KEYS="ctrl-z"       ## Escape sequence for detaching from terminals.
 
@@ -136,7 +136,7 @@ check_binaries() {
     name="$(basename -s .dockerfile $file)"
     if [ -z "$(ls build/out | grep $name)" ]; then 
       printf "Binary for $name is missing! Building from source ..."
-      build/build.sh $file 
+      BUILDPATH=$WORKPATH/build build/build.sh $file 
     fi
   done
   [ -n "$EXT" ] && echo "All binary files are compiled and ready!"
@@ -207,6 +207,8 @@ cleanup() {
 ###############################################################################
 
 main() {
+  [ -n "$VERBOSE" ] && echo "$MOUNTS $PORTS $ENV_STR $ARGS_STR"
+
   ## Start container script.
   docker run -it \
     --name $SRV_NAME \
