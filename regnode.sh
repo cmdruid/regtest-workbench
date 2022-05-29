@@ -198,8 +198,8 @@ wipe_data() {
 cleanup() {
   status="$?"
   [ -n "$EXT" ] && exit 0
-  [ $status -gt 1 ] && stop_container && echo "Clean exit with status: $status" && exit 0
-  [ $status -lt 2 ] && echo "You are now logged out. Node running in the background."
+  [ $status -lt 2 ] && [ -z $DEVMODE ] && echo "You are now logged out. Node running in the background."
+  stop_container && echo "Clean exit with status: $status" && exit 0
 }
 
 ###############################################################################
