@@ -13,7 +13,7 @@ dev_greeting() {
 
 safe_greeting() {
   printf "Press '$(fgc 220 $ESC_KEYS)' to detatch from the terminal. Your node will continue to run in the background.
-You can re-enter this terminal with the command '$(fgc 220 "./start --login $HOSTNAME")'.\n\n"
+You can re-enter this terminal with the command '$(fgc 220 "./regnode.sh login $HOSTNAME")'.\n\n"
 }
 
 ###############################################################################
