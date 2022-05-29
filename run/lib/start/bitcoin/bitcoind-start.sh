@@ -69,7 +69,8 @@ if [ -z "$DAEMON_PID" ]; then
   ## Start bitcoind then tail the logfile to search for the completion phrase.
   echo && printf "Starting bitcoin daemon"; templ prog
   bitcoind $config > /dev/null 2>&1; tail -f $LOGS_FILE | while read line; do
-    fprint "$line" && printf %s "$line" | grep "init message: Done loading" > /dev/null 2>&1
+    [ -n "$DEVMODE" ] && fprint "$line"
+    echo "$line" | grep "init message: Done loading" > /dev/null 2>&1
     if [ $? = 0 ]; then 
       printf "$IND Bitcoin core loaded!"; templ ok && exit 0;
     fi

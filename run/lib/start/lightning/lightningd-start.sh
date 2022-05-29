@@ -25,6 +25,24 @@ CRED_FILE="$DATA_PATH/sparko.login"
 # Methods
 ###############################################################################
 
+gen_keystr() {
+  [ -n "$1" ] && (
+    for key in `cat $1`; do
+      val=`printf "$key" | awk -F '=' '{ print $2 }'`
+      keystr="$keystr$val;"
+    done
+    printf %s "--sparko-keys=$keystr"
+  )
+}
+
+gen_logstr() {
+  [ -n "$1" ] && (
+    SPARK_USER=`cat $1 |kgrep SPARK_USER`
+    SPARK_PASS=`cat $1 |kgrep SPARK_PASS`
+    printf %s "--sparko-login=$SPARK_USER:$SPARK_PASS"
+  )
+}
+
 fprint() {
   col_offset=2
   prefix="$(fgc 215 '|')"
@@ -35,6 +53,8 @@ fprint() {
 ###############################################################################
 # Script
 ###############################################################################
+
+[ -n "$DEVMODE" ] && LINEOUT='/dev/tty' || LINEOUT='/dev/null'
 
 if [ -z "$(which $BIN_NAME)" ]; then echo "Binary for $BIN_NAME is missing!" && exit 1; fi
 
@@ -49,6 +69,13 @@ if [ -z "$DAEMON_PID" ]; then
     templ ok
   fi
 
+  ## Link the regtest interface for compatibility.
+  if [ ! -e "$LINK_PATH/regtest" ]; then
+    printf "Adding symlink for regtest network RPC"
+    ln -s $DATA_PATH/regtest $LINK_PATH/regtest
+    templ ok
+  fi
+
   ## Declare base config string.
   config="--daemon --conf=$CONF_FILE"
 
@@ -60,21 +87,19 @@ if [ -z "$DAEMON_PID" ]; then
   fi
 
   ## Configure sparko keys.
-  printf "Adding sparko key configuration to lightningd"
-  config="$config $(sh -c $LIBPATH/share/sparko-share-config.sh)"
-  templ ok
-
-  ## Link the regtest interface for compatibility.
-  if [ ! -e "$LINK_PATH/regtest" ]; then
-    printf "Adding symlink for regtest network RPC"
-    ln -s $DATA_PATH/regtest $LINK_PATH/regtest
-    templ ok
+  echo && printf "Adding sparko key configuration to lightningd:"
+  if ! ( [ -e "$KEYS_FILE" ] && [ -e "$CRED_FILE" ] ); then
+    printf "\n$IND Generating keys for sparko plugin"
+    $LIBPATH/start/sparko-genkeys.sh
   fi
+  config="$config $(gen_keystr $KEYS_FILE) $(gen_logstr $CRED_FILE)"
+  templ ok
 
   ## Start lightning and wait for it to load.
   echo && printf "Starting lightning daemon" && templ prog
-  lightningd $config > /dev/null 2>&1; tail -f $LOGS_FILE | while read line; do
-    fprint "$line" && echo "$line" | grep "Server started with public key" > /dev/null 2>&1
+  lightningd $config > $LINEOUT 2>&1; tail -f $LOGS_FILE | while read line; do
+    [ -n "$DEVMODE" ] && fprint "$line"
+    echo "$line" | grep "Server started with public key" > /dev/null 2>&1
     if [ $? = 0 ]; then
       printf "$IND Lightning daemon running on regtest network!"
       templ ok && echo && exit 0
@@ -88,6 +113,6 @@ fi
 ## Update share configuration.
 printf "Updating lightning configuration files in $SHAREPATH"
 $LIBPATH/share/lightning-share-config.sh
-if [ -e "$KEYS_FILE" ]; then cp $KEYS_FILE "$PEER_PATH"; fi
-if [ -e "$CRED_FILE" ]; then cp $CRED_FILE "$PEER_PATH"; fi
+cp $KEYS_FILE $PEER_PATH
+cp $CRED_FILE $PEER_PATH
 templ ok

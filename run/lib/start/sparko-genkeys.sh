@@ -8,7 +8,6 @@ set -E
 ###############################################################################
 
 DATA_PATH="/data/lightning"
-PEER_PATH="/share/$HOSTNAME"
 
 KEYS_FILE="$DATA_PATH/sparko.keys"
 LOGIN_FILE="$DATA_PATH/sparko.login"
@@ -33,15 +32,6 @@ generate_password() {
     | base64
 }
 
-build_key_str() {
-  keystr=""
-  for key in `cat $KEYS_FILE`; do
-    val=`printf "$key" | awk -F '=' '{ print $2 }'`
-    keystr="$keystr$val;"
-  done
-  printf $keystr
-}
-
 ###############################################################################
 # Script
 ###############################################################################
@@ -61,12 +51,3 @@ fi
 if [ ! -e "$LOGIN_FILE" ] || [ -z "$(cat $LOGIN_FILE)" ]; then
   printf %b\\n "USERNAME=$SPARK_USER\nPASSWORD=$SPARK_PASS" > $LOGIN_FILE
 fi
-
-## Update configuration in share path.
-if [ -d "$PEER_PATH" ]; then
-  cp "$KEYS_FILE" "$PEER_PATH"
-  cp "$LOGIN_FILE" "$PEER_PATH"
-fi
-
-## Return configuration string
-printf %s "--sparko-keys=$(build_key_str) --sparko-login=$SPARK_USER:$SPARK_PASS"
