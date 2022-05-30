@@ -70,7 +70,8 @@ get_const() {
 }
 
 get_mod() {
-  [ -n "$FUZZ" ] && rand=`get_rand` && printf "$((rand % FUZZ))" || printf 0
+  ( [ -n "$FUZZ" ] && [ "$((FUZZ))" -ne 0 ] ) \
+  && rand=`get_rand` && printf "$((rand % FUZZ))" || printf 0
 }
 
 truncate_logs() {
