@@ -198,7 +198,9 @@ wipe_data() {
 cleanup() {
   status="$?"
   [ -n "$EXT" ] && exit 0
-  [ $status -lt 2 ] && [ -z $DEVMODE ] && echo "You are now logged out. Node running in the background."
+  [ -z $DEVMODE ] \
+    && ([ $status -eq 1 ] || [ -n "$LOGIN" ]) \
+    && echo "You are now logged out. Node running in the background. $status" && exit 0
   stop_container && echo "Clean exit with status: $status" && exit 0
 }
 
@@ -229,8 +231,8 @@ set -E && trap cleanup EXIT
 ## Parse arguments.
 for arg in "$@"; do
   case $arg in
-    login)             login_container $2;               exit 0 ;;
-    compile)           EXT=1 check_binaries;             exit 0 ;;
+    login)             LOGIN=1; login_container $2;      exit 0 ;;
+    compile)           EXT=1; check_binaries;            exit 0 ;;
     -h|--help)         usage;                            exit 0 ;;
     -b|--build)        BUILD=1;                          shift  ;;
     -r|--rebuild)      REBUILD=1;                        shift  ;;
