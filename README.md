@@ -1,6 +1,8 @@
-# Regtest Launchpad
+# Regtest Workbench
 
-Launch automated swarms of Bitcoin and Lightning nodes, each with an interactive shell and full suite of development tools. Prototype and deploy your next project with lightning speed!
+A full-featured environment for Bitcoin and Lightning development.
+
+Launch multiple Bitcoin and Lightning nodes, each with an interactive shell and full suite of development tools. Prototype and deploy your next project with lightning speed!
 
 ## How to Use
 
@@ -10,47 +12,53 @@ To spin up a basic network of three nodes:
 
 ```shell
 ## Clone this repository, and make it your working directory.
-git clone "https://github.com/cmdruid/regtest-node.git"
-cd regtest-node
+git clone "https://github.com/cmdruid/regtest-workbench.git"
+cd regtest-workbench
 
 ## Compiles all the binaries that we will need. May take a while!
-./regnode.sh compile
+./workbench.sh compile
 
 ## Your first (and main) node. Seeds the blockchain and mines blocks.
-./regnode.sh --mine master
+./workbench.sh --miner start master
 
 ## Meet Alice, who connects to master and requests funding.
-./regnode.sh --faucet master --peers master alice
+./workbench.sh --faucet master start alice
 
 ## Meet Bob, also funded by master, who peers and opens a channel with Alice (using short-hand).
-./regnode.sh -f master -p alice -c alice bob
+./workbench.sh --faucet master --channels alice start bob
 
 ## ... repeat for as many nodes as you like!
 
 ## A quick tutorial is also built into the help screen.
-./regnode.sh --help
+./workbench.sh --help
 ```
 Based on the above configuration, each node will automatically connect to their designated peers, request funds from a faucet, and open payment channels. The final argument designates each node with a name tag.
 
-Use the `--mine` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default height is 150.
+Use the `--miner` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default height is 150.
 
 By default, Your miner is configured to watch the mempool, then auto-generate blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds so that transactionswill confirm quickly. If you wish to deploy multiple miners, you should use longer timings in order to avoid chain splits.
 
-The format for configuring your mining node is `--mine=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
+The format for configuring your mining node is `--miner=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
 
-The `--peers` and `--channels` flags will intsruct nodes on whom to peer and open channels with. These flags accept a comma-separated list of nametags (*e.x alice,bob,carol*). The `--faucet` flag will instruct your node to request funding from another node. Nodes are smart enough to configure their own wallets, negotiate funding, and ~~balance their channels accordingly~~! *coming soon!*
+The `--peers` flag will instruct nodes on whom to peer with, and receive transactions / blocks.
+The `--faucet` flag will instruct your node to peer and request funds from another node.
+The `--channels` flag will instruct your node to peer and open channels with another node.
+
+Channels start with a default balance of 5 million sats, which is auto-balanced between nodes.
+
+The `--peers` and `--channels` flags accept a comma-separated list of nametags (*e.x alice,bob,carol*).  Nodes are smart enough to configure their own wallets, negotiate funding, and balance their own channels!
 
 > Tip: *Use your initial miner node as your main faucet, since the block rewards will have made him filthy rich! Miners may also generate more blocks in order to procure funds if their wallet balance is low.*
 
-Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also make the endpoints on a given node available as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available.
+Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also configure a node's endpoints as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available.
 
-All the pertinent settings, keys and credentials for running nodes are namespaced and stored in the `/share` folder. Each node will mount and scan this folder in order to peer and communicate with other nodes. Files are refreshed when you restart a given node, so feel free to muck with the settings on a frequent basis!
+All pertinent settings, keys and credentials for a node is namespaced and stored in the `/share` folder. Nodes will use this folder in order to peer and communicate with other nodes. The files for each node are refreshed when you restart that node, so feel free to muck with the settings on a frequent basis!
 
 > Note: *Nodes are designed to work completely over tor, using the `/share` folder. You can copy / distribute a node's shared files onto other machines and build a regtest network across the web!*
 
 Each node launches with a simple web-wallet for managing invoices and test payments (*provided by sparko*). Nodes will print their local address and login credentials to the console upon startup. You can also manage payments easily using `bitcoin-cli` and `lightning-cli`.
 
- If you have a node suffering from issues, try running the `entrypoint` command. It is the main startup script for each node, and is designed to be re-run as many times as needed. The script output is designed to be very informative, and will help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process.
+ If you have a node suffering from issues, run the `node-start` command in the node's terminal. It is the main start script, and designed to help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process.
 
 > Tip: *Use the `--devmode` flag to enter a node's console before the startup script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)*
 
@@ -60,9 +68,9 @@ All nodes ship with Flask and Nodejs included, plus a core library of developmen
 
 ### \#\# ./build
 
-This path contains the build script, related dockerfiles, and compiled binaries. When you run the `start.sh` script, it will fist scan the `build/dockerfiles` and `build/out` path in order to compare files. If a binary appears to be missing, the start script will then call the build script (with the related dockerfile), and request to build the missing binary from source. Compiled binaries are then copied `build/out`.
+This path contains the build script, related dockerfiles, and compiled binaries. When you run the `workbench.sh` script, it will fist scan the `build/dockerfiles` and `build/out` path in order to compare files. If a binary appears to be missing, the start script will then call the build script (with the related dockerfile), and request to build the missing binary from source. Compiled binaries are then copied `build/out`.
 
-If you have just cloned this repositry, it's best to run `./regnode.sh compile` as a first step, so that launching your first node doesn't force you to compile everything at once.
+If you have just cloned this repositry, it's best to run `./workbench.sh compile` as a first step, so that launching your first node doesn't force you to compile everything at once.
 
 All files located in `build/out` are copied over to the main docker image and installed at build time, so feel free to include any binaries you wish! The script recognizes tar.gz compression, and will strip the first folder before unpacking into `/usr`, so make sure to pack your binaries accordingly.
 
@@ -84,14 +92,15 @@ Documentation will be stored in this folder. More documentation coming soon!
 
 ### \#\# ./run
 
-This folder contains the main `entrypoint` script, libraries and tools, plus all other scripts used to manage services in the stack. 
+This folder contains the main `entrypoint.sh` script, libraries and tools, plus all other scripts used to manage services in the stack.
 
 - Most of the source code for this project is located in `lib`.
-- Scripts placed in `lib\bin` are available from the container's PATH.
-- Projects placed in `plugins` are loaded by lightningd at startup (*folder name must match main script*).
-- Scripts placed in `startup` are executed in alpha-numeric order when `entrypoint` is run.
+- Files in `lib\bin` are available in the container's PATH.
+- Files in `lib\pylib` are available in the container's PYPATH.
+- Files in `plugins` are loaded by lightningd at startup (*main script must match folder name*).
+- Scripts in `startup` are executed in alpha-numeric order when `node-start` is run.
 
-The entire run folder is copied at build time, located at `/root/run` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container. When starting a container in `--devmode`, this folder is mounted directly, with files modified in real-time.
+The entire run folder is copied at build time, located at `/root/run` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container. When a container is started in `--devmode`, the `run` folder is mounted directly, and files are modified in real-time.
 
 ### \#\# ./share
 
@@ -107,7 +116,7 @@ There are two main modes to choose from when launching a container: **safe mode*
 
 By default, a node will launch in safe mode. A copy of the `/run` folder is made at build time, and code changes to `/run` will not affect the node (unless you rebuild and re-launch). The node will continue to run in the background once you exit the node terminal. The node is also configured to self-restart in the event of a crash.
 
-When launching a node with `--devmode` enabled, a few things change. The `entrypoint` script will not start automatically; you will have to call it yourself. The `/run` folder will be mounted directly into the container, so you can modify the source code in real-time.
+When launching a node with `--devmode` enabled, a few things change. The `node-start` script will not start automatically; you will have to call it yourself. The `/run` folder will be mounted directly into the container, so you can modify the source code in real-time.
 
 Any changes to the source code will apply to *all* nodes. Re-run the start script to apply changes. When you exit the terminal, the container will be instantly destroyed, however the internal `/data` store will persist.
 
@@ -115,7 +124,7 @@ If you end up borking a node, use the `--wipe` flag at launch to erase the node'
 
 To mount a folder into your node environment, use the format `--mount local/path:/mount/path`. Paths can be relative or absolute.
 
-To open and forward ports from your node environment, use the format `--ports src1:dest1,src2:dest2, ...`, using a comma to separate port declarations, and colon to separate source:dest ports.
+To open and forward ports from your node environment, use the format `--ports int1:ext1,int2:ext2, ...`, with a comma to separate port declarations, and colon to separate internal:external ports.
 
 ## Contribution
 
