@@ -111,7 +111,7 @@ if [ -n "$USE_FAUCET" ]; then
   rpc_user=`cat $config | kgrep RPC_USER`
   rpc_pass=`cat $config | kgrep RPC_PASS`
 
-  if [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
+  if [ -z "$LOCAL_ONLY" ] && [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
     peer_host="127.0.0.1"
     rpc_port="$RPC_SOCK"
     remote_port=`cat $config | kgrep RPC_PORT`

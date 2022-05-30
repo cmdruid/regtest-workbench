@@ -18,6 +18,9 @@ PEER_FILE="$PEER_PATH/lightning-peer.conf"
 FUND_FILE="$DATA_PATH/fund.address"
 LOGS_FILE="$LOGS_PATH/lightningd.log"
 
+DEFAULT_PEER_TIMEOUT=10
+DEFAULT_TOR_TIMEOUT=20
+
 ###############################################################################
 # Methods
 ###############################################################################
@@ -97,6 +100,13 @@ fi
 # Peer Connection
 ###############################################################################
 
+[ -z $PEER_TIMEOUT ]  && PEER_TIMEOUT=$DEFAULT_PEER_TIMEOUT
+[ -z $TOR_TIMEOUT ]   && TOR_TIMEOUT=$DEFAULT_TOR_TIMEOUT
+
+[ -n "$(pgrep tor)" ] \
+  && CONN_TIMEOUT=$TOR_TIMEOUT \
+  || CONN_TIMEOUT=$PEER_TIMEOUT
+
 if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
   for peer in $(printf $PEER_LIST $CHAN_LIST | tr ',' ' '); do
     
@@ -110,7 +120,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
     ## Parse current peering info.
     onion_host=`cat $config | kgrep ONION_NAME`
     node_id="$(cat $config | kgrep NODE_ID)"
-    if [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
+    if [ -z "$LOCAL_ONLY" ] && [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
       peer_host="$onion_host"
     else
       peer_host="$(cat $config | kgrep HOST_NAME)"
@@ -123,7 +133,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
       printf "\n$IND Connecting to node"
     fi
 
-    ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child
+    ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child $CONN_TIMEOUT
     ( [ $? -eq 0 ] && templ conn ) || templ tout
 
   done

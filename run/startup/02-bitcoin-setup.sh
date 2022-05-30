@@ -26,6 +26,8 @@ DEFAULT_LABEL="Coinbase"
 DEFAULT_MIN_FEE=0.00001
 DEFAULT_MIN_BLOCKS=150
 
+DEFAULT_PEER_TIMEOUT=10
+DEFAULT_TOR_TIMEOUT=20
 BLOCK_SYNC_TIMEOUT=30
 
 ###############################################################################
@@ -110,7 +112,14 @@ fi
 # Peer Connection
 ###############################################################################
 
-if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ]); then
+[ -z $PEER_TIMEOUT ]  && PEER_TIMEOUT=$DEFAULT_PEER_TIMEOUT
+[ -z $TOR_TIMEOUT ]   && TOR_TIMEOUT=$DEFAULT_TOR_TIMEOUT
+
+[ -n "$(pgrep tor)" ] \
+  && CONN_TIMEOUT=$TOR_TIMEOUT \
+  || CONN_TIMEOUT=$PEER_TIMEOUT
+
+if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ] ); then
   for peer in $(printf $PEER_LIST $CHAN_LIST $USE_FAUCET | tr ',' ' '); do
     
     ## Search for peer file in peers path.
@@ -122,7 +131,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ]); then
 
     ## Parse current peering info.
     onion_host=`cat $config | kgrep ONION_NAME`
-    if [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
+    if [ -z "$LOCAL_ONLY" ] && [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
       peer_host="$onion_host"
     else
       peer_host="$(cat $config | kgrep HOST_NAME)"
@@ -135,9 +144,14 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ]); then
       bitcoin-cli addnode "$peer_host" add
       printf "\n$IND Connecting to node "
     fi
-
     
-    ( while ! is_peer_connected $peer_host; do sleep 1 && printf "."; done ) & timeout_child
+    ( ## Start a process to connect to peer (with a timeout).
+      while ! is_peer_connected $peer_host; do 
+        sleep 1 && printf "."; 
+      done 
+    ) & timeout_child $CONN_TIMEOUT
+    
+    ## Check if we connected or timed out.
     ( [ $? -eq 0 ] && templ conn ) || templ tout
 
   done
