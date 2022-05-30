@@ -298,7 +298,10 @@ if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 if [ -n "$DEVMODE" ]; then
   DEV_MOUNT="type=bind,source=$WORKPATH/run,target=/root/run"
   RUN_MODE="development"
-  RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+  RUN_FLAGS="--mount $DEV_MOUNT -e DEVMODE=1"
+  [ -n "$HEADLESS" ] \
+    && RUN_FLAGS="$RUN_FLAGS --detach" \
+    || RUN_FLAGS="$RUN_FLAGS --rm --entrypoint bash"
 else
   RUN_MODE="safe"
   RUN_FLAGS="--init --detach --restart on-failure:2"
