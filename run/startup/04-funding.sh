@@ -25,6 +25,10 @@ FAUCET_DELAY=0
 # Methods
 ###############################################################################
 
+get_peer_config() {
+  [ -n "$1" ] && [ -n "$2" ] && find "$SHAREPATH/$1"* -name $2 2>&1
+}
+
 greater_than() {
   [ -n "$1" ] && [ -n "$2" ] && \
   [ -n "$(echo "$1 $2" | awk '{ print ($1>=$2) }' | grep 1)" ]
@@ -55,22 +59,16 @@ is_node_connected() {
 }
 
 is_channel_confirmed() {
-  [ -n "$1" ] && [ "$(lcli peerchannelcount "$1")" != "0" ]
+  [ -n "$1" ] && [ "$(pycli peerchannelcount "$1")" != "0" ]
 }
 
 is_channel_funded() {
-  [ -n "$1" ] && [ "$(lcli peerchannelbalance "$1")" != "0" ]
-}
-
-finish() {
-  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
+  [ -n "$1" ] && [ "$(pycli peerchannelbalance "$1")" != "0" ]
 }
 
 ###############################################################################
 # Script
 ###############################################################################
-
-trap finish EXIT
 
 templ banner "Funding Configuration"
 
@@ -103,7 +101,7 @@ if [ -n "$USE_FAUCET" ]; then
 
   ## Search for peer file in peers path.
   printf "Checking faucet configuration:\n"
-  config=`find "$SHAREPATH/$USE_FAUCET"* -name bitcoin-peer.conf`
+  config=`get_peer_config $USE_FAUCET bitcoin-peer.conf`
 
   ## Exit out if peer file is not found.
   if [ ! -e "$config" ]; then templ fail && continue; fi
@@ -113,7 +111,7 @@ if [ -n "$USE_FAUCET" ]; then
   rpc_user=`cat $config | kgrep RPC_USER`
   rpc_pass=`cat $config | kgrep RPC_PASS`
 
-  if [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
+  if [ -z "$LOCAL_ONLY" ] && [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
     peer_host="127.0.0.1"
     rpc_port="$RPC_SOCK"
     remote_port=`cat $config | kgrep RPC_PORT`
@@ -130,9 +128,10 @@ if [ -n "$USE_FAUCET" ]; then
   FAUCET_WALLET=`bitcoin-cli $FAUCET_CONF listwallets | tr -d "\" " | tail -n +2 | head -n 1`
 
   if [ -z "$FAUCET_WALLET" ]; then 
-    printf "$IND Faucet configuration failed! Check params:" && templ fail
-    printf "$IND '-rpcconnect=$peer_host -rpcport=$rpc_port'\n"
-    printf "$IND '-rpcuser=$rpc_user -rpcpassword=$rpc_pass'\n"
+    printf "$IND Faucet configuration failed!" && templ fail
+    printf "$IND Check RPC configuration:\n"
+    printf "$IND rpcconnect=$peer_host rpcport=$rpc_port\n"
+    printf "$IND rpcuser=$rpc_user rpcpassword=$rpc_pass\n"
   else
     printf "$IND Connected to faucet \"$FAUCET_WALLET\" wallet." && templ conn 
   fi
@@ -145,16 +144,12 @@ btc_balance=`get_btc_balance`
 
 ## If bitcoin balance is low, get funds from faucet.
 if ! greater_than $btc_balance $MIN_FUNDS; then
-  echo && printf "$IND Bitcoin funds are low! Searching for funding ...\n"
+  echo && printf "$IND Bitcoin funds are low!\n"
   if [ -n "$MINE_NODE" ]; then
-    printf "$IND Mining 5 blocks for funds ...\n"
-    bitcoin-cli generatetoaddress 5 $btc_address > /dev/null 2>&1
+    printf "$IND Mining 150 blocks for funds ...\n"
+    bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
     if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-      printf "$IND Block height too low! Mining 150 more blocks ...\n"
-      bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
-      if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
-        printf "$IND We are still broke! Something is wrong!" && templ fail && exit 1
-      fi
+      printf "$IND We are still broke! Something is wrong!" && templ fail && exit 1
     fi
   elif [ -n "$USE_FAUCET" ] && [ -n "$FAUCET_WALLET" ]; then
     printf "$IND Checking faucet ...\n"
@@ -205,7 +200,7 @@ if [ -n "$CHAN_LIST" ]; then
 
     ## Search for peer file in peers path.
     echo && printf "Checking channel with $peer:\n"
-    config=`find $SHAREPATH/$peer* -name lightning-peer.conf`
+    config=`get_peer_config $peer lightning-peer.conf`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi
@@ -222,7 +217,7 @@ if [ -n "$CHAN_LIST" ]; then
         lightning-cli fundchannel id=$node_id amount=$sat_amt minconf=0 > /dev/null 2>&1
         while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
       fi
-      printf "$IND Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"
+      printf "$IND Channel balance:"; templ brkt "$(pycli peerchannelbalance $node_id)"
     else
       printf "$IND No connection to $peer!" && templ fail
     fi

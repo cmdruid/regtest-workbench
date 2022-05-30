@@ -62,6 +62,8 @@ for arg in "$@"; do
     pass)   shift; brkt "PASS";              exit 0;;
     conn)   shift; brkt "CONNECTED";         exit 0;;
     prog)   shift; brkt "IN PROGRESS" "220"; exit 0;;
+    skip)   shift; brkt "SKIP" "220";        exit 0;;
+    tout)   shift; brkt "TIMED OUT" "220";   exit 0;;
     fail)   shift; brkt "FAIL" "160";        exit 0;;
     brkt)   shift; brkt "$1" "$2" "$3";      exit 0;;
     banner) shift; banner "$1" "$2" "$3";    exit 0;;

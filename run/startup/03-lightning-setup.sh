@@ -3,6 +3,8 @@
 
 set -E
 
+. $LIBPATH/util/timers.sh
+
 ###############################################################################
 # Environment
 ###############################################################################
@@ -16,27 +18,28 @@ PEER_FILE="$PEER_PATH/lightning-peer.conf"
 FUND_FILE="$DATA_PATH/fund.address"
 LOGS_FILE="$LOGS_PATH/lightningd.log"
 
+DEFAULT_PEER_TIMEOUT=10
+DEFAULT_TOR_TIMEOUT=20
+
 ###############################################################################
 # Methods
 ###############################################################################
 
+get_peer_config() {
+  [ -n "$1" ] && find "$SHAREPATH/$1"* -name lightning-peer.conf 2>&1
+}
+
 is_node_configured() {
-  [ -n "$1" ] && [ -n "$(lcli getpeerlist | grep $1)" ]
+  [ -n "$1" ] && [ -n "$(pycli getpeerlist | grep $1)" ]
 }
 
 is_node_connected() {
-  [ -n "$1" ] && [ -n "$(lcli getconnectedpeers | grep $1)" ]
-}
-
-finish() {
-  if [ "$?" -ne 0 ]; then printf "Failed with exit code $?"; templ fail && exit 1; fi
+  [ -n "$1" ] && [ -n "$(pycli getconnectedpeers | grep $1)" ]
 }
 
 ###############################################################################
 # Script
 ###############################################################################
-
-trap finish EXIT
 
 if [ -z "$(pgrep bitcoind)" ]; then echo "Bitcoind is not running!" && exit 1; fi
 
@@ -50,7 +53,7 @@ if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 ##if [ -e "$LOGS_FILE" ]; then rm $LOGS_FILE && touch $LOGS_FILE; fi
 
 ## Start lightning daemon.
-sh -c $LIBPATH/start/lightning/lightningd-start.sh
+$LIBPATH/start/lightning/lightningd-start.sh
 
 ## Start CL-REST Server
 #sh -c $LIBPATH/start/lightning/cl-rest-start.sh
@@ -97,12 +100,19 @@ fi
 # Peer Connection
 ###############################################################################
 
-if [ -n "$PEER_LIST" ]; then
-  for peer in $(printf $PEER_LIST | tr ',' ' '); do
+[ -z $PEER_TIMEOUT ]  && PEER_TIMEOUT=$DEFAULT_PEER_TIMEOUT
+[ -z $TOR_TIMEOUT ]   && TOR_TIMEOUT=$DEFAULT_TOR_TIMEOUT
+
+[ -n "$(pgrep tor)" ] \
+  && CONN_TIMEOUT=$TOR_TIMEOUT \
+  || CONN_TIMEOUT=$PEER_TIMEOUT
+
+if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
+  for peer in $(printf $PEER_LIST $CHAN_LIST | tr ',' ' '); do
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer:"
-    config=`find "$SHAREPATH/$peer"* -name lightning-peer.conf`
+    config=`get_peer_config $peer`
 
     ## Exit out if peer file is not found.
     if [ ! -e "$config" ]; then templ fail && continue; fi
@@ -110,7 +120,7 @@ if [ -n "$PEER_LIST" ]; then
     ## Parse current peering info.
     onion_host=`cat $config | kgrep ONION_NAME`
     node_id="$(cat $config | kgrep NODE_ID)"
-    if [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
+    if [ -z "$LOCAL_ONLY" ] && [ -n "$(pgrep tor)" ] && [ -n "$onion_host" ]; then
       peer_host="$onion_host"
     else
       peer_host="$(cat $config | kgrep HOST_NAME)"
@@ -123,7 +133,8 @@ if [ -n "$PEER_LIST" ]; then
       printf "\n$IND Connecting to node"
     fi
 
-    while ! is_node_connected $node_id; do sleep 1 && printf "."; done; templ conn
+    ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child $CONN_TIMEOUT
+    ( [ $? -eq 0 ] && templ conn ) || templ tout
 
   done
 fi

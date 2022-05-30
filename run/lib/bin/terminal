@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+## Terminal script for setting up a shell session.
+
+set -E
+
+###############################################################################
+# Methods
+###############################################################################
+
+dev_greeting() {
+  printf "Now running in developer mode. You can type '$(fgc 220 exit)' to quit this session and terminate the node.\n"
+}
+
+safe_greeting() {
+  printf "Press '$(fgc 220 $ESC_KEYS)' to detatch from the terminal. Your node will continue to run in the background.
+You can re-enter this terminal with the command '$(fgc 220 "./workbench.sh login $HOSTNAME")'.\n\n"
+}
+
+###############################################################################
+# Script
+###############################################################################
+
+ip_addr=`ip -f inet addr show eth0 | grep -Po 'inet \K[\d.]+'`
+spark_key=`cat /data/lightning/sparko.keys | kgrep STREAM_KEY`
+spark_user=`cat /data/lightning/sparko.login | kgrep USERNAME`
+spark_pass=`cat /data/lightning/sparko.login | kgrep PASSWORD`
+stream_uri="stream?access-key=$(printf $spark_key | awk -F ':' '{ print $1 }')"
+
+templ banner "Welcome to the shell terminal for $HOSTNAME."
+
+printf "$(tput bold)Node ID:$(tput sgr0)      $(lightning-cli getinfo | jgrep id)
+$(tput bold)Stream Link:$(tput sgr0)  $(fgc 033 "http://$ip_addr:9737/$stream_uri")
+
+$(tput bold)Wallet Link:$(tput sgr0)  $(fgc 033 "http://$ip_addr:9737")
+$(tput bold)Wallet Login:$(tput sgr0) $spark_user // $spark_pass
+\n"
+
+if [ -z "$DEVMODE" ]; then safe_greeting; /bin/bash; else dev_greeting; fi

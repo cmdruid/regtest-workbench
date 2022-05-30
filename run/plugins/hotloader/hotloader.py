@@ -5,6 +5,7 @@ from pyln.client import Plugin, RpcError
 from subprocess  import check_output
 from shlex       import split
 from os          import scandir
+from os.path     import dirname
 from hashlib     import md5
 from time        import sleep
 from glob        import glob
@@ -12,11 +13,12 @@ from threading   import Timer
 
 import json
 
-DEFAULT_PLUGPATH = '/root/run/plugins'
+DEFAULT_PLUGPATH = dirname(dirname(__file__))
 DEFAULT_INTERVAL = 5
 
 plugin = Plugin()
-watch_list = {}
+watch_list = dict()
+
 
 @plugin.method('hotload')
 def hotload(plugin, command=None, **kwargs):
@@ -31,11 +33,9 @@ def hotload(plugin, command=None, **kwargs):
 
 def plugin_monitor(plugin):
   """Simple implementation of a threaded callback loop."""
-  watch_path = plugin.get_option('watchpath')
-  interval   = int(plugin.get_option('interval'))
   if plugin.runstate == 'enabled':
-    check_plugins(watch_path)
-    Timer(interval, plugin_monitor, args=[plugin]).start()
+    check_plugins(plugin.watchpath)
+    Timer(plugin.interval, plugin_monitor, args=[plugin]).start()
   return
 
 
@@ -77,11 +77,17 @@ def restart_plugin(pname, fpath):
 @plugin.init()
 def init(options, configuration, plugin):
   """Initialize plugin object."""
-  plugin.runstate = 'disabled'
+  plugin.runstate  = plugin.get_option('hotload-state')
+  plugin.watchpath = plugin.get_option('hotload-path')
+  plugin.interval  = int(plugin.get_option('hotload-interval'))
   plugin.log(f"Hotloader initialized!")
+  plugin.log("Watch path set to: {}".format(plugin.watchpath))
   return
 
-plugin.add_option('watchpath', DEFAULT_PLUGPATH, f"Plugin path to check for file changes. Default is {DEFAULT_PLUGPATH} path.")
-plugin.add_option('interval', DEFAULT_INTERVAL, f"Interval to check for file changes. Default is {DEFAULT_INTERVAL} seconds.")
+
+plugin.add_option('hotload-state', 'disabled', f"Default state of plugin when lightningd starts.")
+plugin.add_option('hotload-path', DEFAULT_PLUGPATH, f"Plugin path to check for file changes. Default is {DEFAULT_PLUGPATH} path.")
+plugin.add_option('hotload-interval', DEFAULT_INTERVAL, f"Interval to check for file changes. Default is {DEFAULT_INTERVAL} seconds.")
+
 
 plugin.run()

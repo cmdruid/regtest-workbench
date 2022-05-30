@@ -68,16 +68,20 @@ RUN alias_file="~/config/.bash_aliases" \
 ## Make sure scripts are executable.
 RUN for file in `grep -lr '#!/usr/bin/env' $RUNPATH`; do chmod +x $file; done
 
-## Symlink entrypoint to PATH.
-RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/start-node
+## Symlink entrypoint and login to PATH.
+RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/node-start
 
-## Configure environment.
+## Configure run environment.
 ENV PATH="$LIBPATH/bin:$HOMEDIR/.local/bin:$PATH"
 ENV PYPATH="$LIBPATH/pylib:$PYPATH"
 ENV RUNPATH="$RUNPATH"
 ENV LIBPATH="$LIBPATH"
-ENV PLUGPATH="$RUNPATH/plugins"
+
+## Configure Core Lightning Environment
+ENV LNPATH="$HOMEDIR/.lightning"
+ENV PLUGPATH="$RUNPATH/plugins/"
+ENV LNRPCPATH="$LNPATH/regtest/lightning-rpc"
 
 WORKDIR $HOMEDIR
 
-ENTRYPOINT [ "start-node" ]
+ENTRYPOINT [ "node-start" ]

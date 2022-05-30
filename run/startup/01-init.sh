@@ -19,7 +19,11 @@ if [ -d "$SHAREPATH/$HOSTNAME" ]; then
   rm -r $SHAREPATH/$HOSTNAME && templ ok
 fi
 
-mkdir -p "$SHAREPATH/$HOSTNAME" 
+## Create shared path.
+if [ ! -d "$SHAREPATH/$HOSTNAME" ]; then
+  printf "Creating share path"
+  mkdir -p "$SHAREPATH/$HOSTNAME" && templ ok
+fi
 
 ## If tor enabled, call tor startup script.
 if [ -n "$TOR_NODE" ]; then sh -c $LIBPATH/start/onion-start.sh; fi
