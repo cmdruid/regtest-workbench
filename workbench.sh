@@ -45,6 +45,7 @@ Build Options  |  Parameters  |  Description
   -m, --miner                    Configure this as a mining node (generates blocks and clears mempool).
   -m, --miner=    POLL,INT,FUZZ  Provide an optional configuration to the mining node.
   -t, --tor                      Enable the use of Tor and onion services for this node.
+  -l, --local                    When combined with --tor, forces local peering but allows hidden services.
   -p, --peers     TAG1,TAG2      List the peer nodes to connect to (for Bitcoin / Lightning nodes).
   -c, --channels  TAG1,TAG2      List the peer nodes to open channels with (for Lightning nodes).
   -f, --faucet    TAG            Specify a node to use as a faucet (usually a mining node).
@@ -256,6 +257,7 @@ for arg in "$@"; do
     -m|--miner)        add_arg "MINE_NODE=DEFAULT";      shift  ;;
     -m=*|--miner=*)    add_arg "MINE_NODE=${arg#*=}";    shift  ;;
     -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
+    -l|--local)        add_arg "LOCAL_ONLY=1";           shift  ;;
   esac
 done
 
