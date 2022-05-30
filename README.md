@@ -1,8 +1,19 @@
 # Regtest Workbench
 
-A full-featured environment for Bitcoin and Lightning development.
+A robust, featured-rich development environment for building on-top of Bitcoin and Lightning.
 
-Launch multiple Bitcoin and Lightning nodes, each with an interactive shell and full suite of development tools. Prototype and deploy your next project with lightning speed!
+Launch multiple Bitcoin / Lightning nodes, and watch them form an automated network of miners, validators, and lightning channels. Each node contains an interactive terminal, web wallet, and suite of development tools.
+
+Also included in each node:
+ - Multiple interfaces to connect with: Spark, REST, LightningRPC, and more.
+ - Full Tor (V3) services support for all interfaces (plus peering!).
+ - Support for latest version of Zeus wallet via REST and sparko connect.
+ - Fully automated opening and balancing of channels between nodes.
+ - Automated loading and hot-loading of plugins for Core Lightning.
+ - Multiple launch configurations: safe mode, dev mode, and headless mode.
+ - Coming soon: transaction / invoice traffic generation, native websocket interface.
+
+Everything is configured out of the box. Simply open up a node port and connect your application. Prototype and deploy your next project with lightning speed!
 
 ## How to Use
 
@@ -28,12 +39,12 @@ cd regtest-workbench
 ## Meet Bob, also funded by master, who peers and opens a channel with Alice.
 ./workbench.sh start bob --faucet master --channels alice
 
-## Meet Carol, who likes to use shorter commands and start in headless mode.
+## Meet Carol, who likes to use shorter commands, and start in headless mode.
 ./workbench.sh start carol -f master -c alice,bob --headless
 
 ## ... repeat for as many nodes as you like!
 
-## A quick tutorial is also built into the help screen.
+## A detailed guide is also built into the help screen.
 ./workbench.sh --help
 ```
 Based on the above configuration, each node will automatically connect to their designated peers, request funds from a faucet, and open payment channels. The `start` keyword designates your node with a name tag.
@@ -42,19 +53,19 @@ Use the `--miner` flag with your first node in order to initiate the chain. Your
 
 By default, Your miner is configured to watch the mempool, then auto-generate blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds, so transactions should confirm quickly. If you wish to deploy multiple miners, use a different configuration that avoids chain splits.
 
-The format for configuring your mining node is `--miner=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20 seconds.
+The format for configuring each miner is `--miner=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20 seconds.
 
-The `--peers` flag will instruct nodes on whom to peer with, and receive transactions / blocks.
+The `--peers` flag will instruct nodes on whom to peer with, and share transactions / blocks.
 The `--faucet` flag will instruct your node to peer and request funds from another node.
 The `--channels` flag will instruct your node to peer and open channels with another node.
 
-By default, nodes will request a balance of 10 BTC, and open channels with a balance of 5 million sats (split 50/50 between parties). You can modify these settings (and much more) by editing the `.env` file at the root of this repo.
+By default, nodes will request a balance of 10 BTC, and open channels with a balance of 5 million sats (split 50/50 between parties). You can modify these settings (and much more) by editing the `.env.sample` file at the root of this repo.
 
-The `--peers` and `--channels` flags accept a comma-separated list of nametags (*e.x alice,bob,carol*).  Nodes are smart enough to configure their own wallets, negotiate funding, and balance their own channels!
+The `--peers` and `--channels` flags accept a comma-separated list of nametags (*e.x alice,bob,carol*).  Nodes are smart enough to configure their own wallets, negotiate funding, and balance channels!
 
 > Tip: *Use your initial miner node as your main faucet, since the block rewards will have made him filthy rich! Miners may also generate more blocks in order to procure funds if their wallet balance is low.*
 
-Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also configure a node's endpoints as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available.
+Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also configure a node's endpoints as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available (unless given the `--local` flag).
 
 All pertinent settings, keys and credentials for a node is namespaced and stored in the `/share` folder. Nodes will use this folder in order to peer and communicate with other nodes. The files for each node are refreshed when you restart that node, so feel free to muck with the settings on a frequent basis!
 
@@ -62,13 +73,15 @@ All pertinent settings, keys and credentials for a node is namespaced and stored
 
 Each node launches with a simple web-wallet for managing invoices and test payments (*provided by sparko*). Nodes will print their local address and login credentials to the console upon startup. You can also manage payments easily using `bitcoin-cli` and `lightning-cli`.
 
-> Tip: *The short-hand `bcli` and `lcli` are also available. Check out the `config/.bash_aliases` file to learn more!*
+> Tip: *The short-hand `bcli` and `lcli` are also available. Check out the `config/.bash_aliases` file for more handy aliases!*
 
 Use the `--devmode` flag to enter a node's console before the startup script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)
 
 > Tip: *If you have a node suffering from issues, run the `node-start` command within the node's terminal. It is the main start script, and designed to help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process. If all else fails, restart the node using the`--wipe` flag to erase its persistent storage, and give your node a fresh start!*
 
 All nodes ship with Flask and Nodejs included, plus a core library of development tools. Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
+
+> *FYI contrib/examples is sparse at the moment. More demo projects will be added mid-June. Please contact me if you would like to help contribute!*
 
 ## Repository Overview
 
@@ -118,7 +131,7 @@ If tor is enabled for a given node, its share data can also be copied to other m
 
 *Work in progress. Feel free to hack the project on your own!*
 
-There are two main modes to choose from when launching a container: **safe mode** and **development mode**. 
+There are three main modes to choose from when launching a container: **safe mode**, **development mode**, and **headless mode**.
 
 By default, a node will launch in safe mode. A copy of the `/run` folder is made at build time, and code changes to `/run` will not affect the node (unless you rebuild and re-launch). The node will continue to run in the background once you exit the node terminal. The node is also configured to self-restart in the event of a crash.
 
@@ -128,9 +141,11 @@ Any changes to the source code will apply to *all* nodes. Re-run the start scrip
 
 If you end up borking a node, use the `--wipe` flag at launch to erase the node's persistent storage. The start scripts are designed to be robust, and nodes are highly disposable. Feel free to crash, wipe, and re-launch nodes as often as you like!
 
-To mount a folder into your node environment, use the format `--mount local/path:/mount/path`. Paths can be relative or absolute.
+Both safe-mode and dev-mode can be augmented with `--headless` mode, which launches a node without connecting to it. You can still monitor nodes through a management service like **portainer**, or simply login to the node using `./workbench login *nametag*`.
 
-To open and forward ports from your node environment, use the format `--ports int1:ext1,int2:ext2, ...`, with a comma to separate port declarations, and colon to separate internal:external ports.
+To mount folders into a node's environment, use the format `--mount local/path:/mount/path`. Paths can be relative or absolute.
+
+To open and forward ports from a node's environment, use the format `--ports int1:ext1,int2:ext2, ...`, with a comma to separate port declarations, and colon to separate internal:external ports.
 
 The `--passthru` flag will allow you to pass a quoted string of flags directly to the internal `docker run` script. With great power comes great responsibility! :-)
 

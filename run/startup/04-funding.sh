@@ -15,7 +15,10 @@ CLN_FUND_FILE="$CLN_DATA_PATH/fund.address"
 
 DEFAULT_RPC_SOCK=18446
 DEFAULT_MIN_FUNDS=1
-FUND_SPLIT=4
+DEFAULT_FAUCET_DEPOSIT=10
+DEFAULT_FUND_SPLIT=4
+DEFAULT_CHAN_DEPOSIT=5000000
+DEFAULT_FAUCET_BLOCKS=150
 
 FAUCET_CONF=""
 FAUCET_WALLET=""
@@ -79,8 +82,12 @@ if [ -z "$(pgrep bitcoind)" ] && [ -z "$(pgrep lightningd)" ]; then
 fi
 
 ## Set default values.
-if [ -z "$RPC_SOCK" ]; then RPC_SOCK=$DEFAULT_RPC_SOCK; fi
-if [ -z "$MIN_FUNDS" ]; then MIN_FUNDS=$DEFAULT_MIN_FUNDS; fi
+[ -z "$RPC_SOCK" ]       && RPC_SOCK=$DEFAULT_RPC_SOCK
+[ -z "$FAUCET_DEPOSIT" ] && FAUCET_DEPOSIT=$DEFAULT_FAUCET_DEPOSIT
+[ -z "$CHAN_DEPOSIT" ]   && CHAN_DEPOSIT=$DEFAULT_CHAN_DEPOSIT
+[ -z "$FAUCET_BLOCKS" ]  && FAUCET_BLOCKS=$DEFAULT_FAUCET_BLOCKS
+[ -z "$MIN_FUNDS" ]      && MIN_FUNDS=$DEFAULT_MIN_FUNDS
+[ -z "$FUND_SPLIT" ]     && FUND_SPLIT=$DEFAULT_FUND_SPLIT
 
 ## Fetch details for bitcoin wallet.
 btc_address=`cat "$BTC_FUND_FILE" | kgrep ADDRESS`
@@ -146,8 +153,8 @@ btc_balance=`get_btc_balance`
 if ! greater_than $btc_balance $MIN_FUNDS; then
   echo && printf "$IND Bitcoin funds are low!\n"
   if [ -n "$MINE_NODE" ]; then
-    printf "$IND Mining 150 blocks for funds ...\n"
-    bitcoin-cli generatetoaddress 150 $btc_address > /dev/null 2>&1
+    printf "$IND Mining $FAUCET_BLOCKS blocks for funds ...\n"
+    bitcoin-cli generatetoaddress $FAUCET_BLOCKS $btc_address > /dev/null 2>&1
     if ! greater_than $(get_btc_balance) $MIN_FUNDS; then
       printf "$IND We are still broke! Something is wrong!" && templ fail && exit 1
     fi
@@ -156,8 +163,8 @@ if ! greater_than $btc_balance $MIN_FUNDS; then
     if ! greater_than $(faucet_cli getbalance) $MIN_FUNDS; then 
       printf "$IND Faucet is broke!" && templ fail
     else
-      printf "$IND Funding address: $btc_address\n"
-      faucet_cli sendtoaddress $btc_address 10 > /dev/null 2>&1
+      printf "$IND Funding ${FAUCET_DEPOSIT}BTC to address: $btc_address\n"
+      faucet_cli sendtoaddress $btc_address $FAUCET_DEPOSIT > /dev/null 2>&1
       printf "$IND Waiting for funds to clear ."
       while ! greater_than $(get_btc_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
     fi
@@ -195,7 +202,7 @@ fi
 
 ## Open a lightning channels with peers.
 if [ -n "$CHAN_LIST" ]; then
-  sat_amt="5000000"
+  sat_amt="$CHAN_DEPOSIT"
   for peer in $(printf $CHAN_LIST | tr ',' ' '); do
 
     ## Search for peer file in peers path.

@@ -34,7 +34,6 @@ cleanup() {
 trap clean_exit EXIT; trap cleanup SIGTERM SIGKILL
 
 [ -z "$DEVMODE" ] && sleep 1   ## Add some delay for docker to attach tty properly.
-[ -n "$STARTUP" ] && startup   ## Launch startup script.
 
 ## Execute startup scripts.
 for script in `find $RUNPATH/startup -name *.sh | sort`; do

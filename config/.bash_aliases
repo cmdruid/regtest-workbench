@@ -14,8 +14,10 @@ alias listsockets='ss -tunlp'
 ## Shortcuts to logfiles.
 alias bdlog='tail -f /var/log/bitcoin/debug.log'
 alias ldlog='tail -f /var/log/lightning/lightningd.log'
+alias torlog='tail -f /var/log/tor/notice.log'
+alias minelog='tail -f /var/log/regminer.log'
 
-## Get QR codes for copying strings to your phone.
+## Get QR codes for onion strings.
 alias qrbtconion='cat /data/tor/services/btc/hostname | qrencode -m 2 -t "ANSIUTF8"'
 alias qrclnonion='cat /data/tor/services/cln/hostname | qrencode -m 2 -t "ANSIUTF8"'
 

@@ -95,7 +95,10 @@ if [ -z "$DAEMON_PID" ]; then
   config="$config $(gen_keystr $KEYS_FILE) $(gen_logstr $CRED_FILE)"
   templ ok
 
-  echo "Config String: $config"
+  [ -n "$DEVMODE" ] && ( 
+    echo && printf "Config string:"
+    for string in $config; do printf "\n$IND $string"; done && templ ok
+  )
 
   ## Start lightning and wait for it to load.
   echo && printf "Starting lightning daemon" && templ prog
@@ -113,7 +116,7 @@ else
 fi
 
 ## Update share configuration.
-printf "Updating lightning configuration files in $SHAREPATH"
+echo && printf "Updating lightning configuration files in $SHAREPATH"
 $LIBPATH/share/lightning-share-config.sh
 cp $KEYS_FILE $PEER_PATH
 cp $CRED_FILE $PEER_PATH

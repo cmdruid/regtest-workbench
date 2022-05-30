@@ -11,7 +11,7 @@ DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
 ESC_KEYS="ctrl-z"       ## Escape sequence for detaching from terminals.
-HEADMODE="-i"           ## Container start connects to terminal by default.
+HEADMODE="-i"           ## Container connects to terminal by default.
 
 DATAPATH="data"         ## Default path for a node's interal storage.
 SHAREPATH="share"       ## Default path to publish connection info.
@@ -45,6 +45,7 @@ Build Options  |  Parameters  |  Description
   -m, --miner                    Configure this as a mining node (generates blocks and clears mempool).
   -m, --miner=    POLL,INT,FUZZ  Provide an optional configuration to the mining node.
   -t, --tor                      Enable the use of Tor and onion services for this node.
+  -l, --local                    When combined with --tor, forces local peering but allows hidden services.
   -p, --peers     TAG1,TAG2      List the peer nodes to connect to (for Bitcoin / Lightning nodes).
   -c, --channels  TAG1,TAG2      List the peer nodes to open channels with (for Lightning nodes).
   -f, --faucet    TAG            Specify a node to use as a faucet (usually a mining node).
@@ -256,6 +257,7 @@ for arg in "$@"; do
     -m|--miner)        add_arg "MINE_NODE=DEFAULT";      shift  ;;
     -m=*|--miner=*)    add_arg "MINE_NODE=${arg#*=}";    shift  ;;
     -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
+    -l|--local)        add_arg "LOCAL_ONLY=1";           shift  ;;
   esac
 done
 
