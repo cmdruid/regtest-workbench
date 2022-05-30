@@ -12,6 +12,7 @@ To spin up a basic network of three nodes:
 
 ```shell
 ## Clone this repository, and make it your working directory.
+
 git clone "https://github.com/cmdruid/regtest-workbench.git"
 cd regtest-workbench
 
@@ -77,13 +78,13 @@ This path contains the build script, related dockerfiles, and compiled binaries.
 
 If you have just cloned this repositry, it's best to run `./workbench.sh compile` as a first step, so that launching your first node doesn't force you to compile everything at once.
 
-All files located in `build/out` are copied over to the main docker image and installed at build time, so feel free to include any binaries you wish! The script recognizes tar.gz compression, and will strip the first folder before unpacking into `/usr`, so make sure to pack your binaries accordingly.
+All files located in `build/out` are copied over to the main docker image and installed at build time, so feel free to include any binaries you wish! The script recognizes tar.gz compression, and will strip the first folder before unpacking into `/usr`, so make sure to pack your files accordingly.
 
 You can also add your own `build/dockerfiles`, or modify the existing ones in order to try different builds and versions. If you add a custom dockerfile, make sure it also names the binary with a matching substring, so the start script can correctly determine if your binary is present / missing.
 
 ### \#\# ./config
 
-These are the configuration files used by the main services in the stack. The entire config folder is copied at build time, located at `/root/config` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container.
+These are the configuration files used by the main services in the stack. The entire config folder is copied at build time, to `/root/config` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container.
 
 The `.bash_aliases` file is also loaded upon startup, feel free to use it to customize your environment!
 
