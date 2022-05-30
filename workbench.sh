@@ -11,6 +11,7 @@ DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
 ESC_KEYS="ctrl-z"       ## Escape sequence for detaching from terminals.
+HEADMODE="-i"           ## Container start connects to terminal by default.
 
 DATAPATH="data"         ## Default path for a node's interal storage.
 SHAREPATH="share"       ## Default path to publish connection info.
@@ -39,6 +40,7 @@ Build Options  |  Parameters  |  Description
   -d, --domain    STRING         Set the top-level domain name for the container (Default is $DEFAULT_NAME).
   -i, --devmode                  Start container in devmode (mounts ./run, does not start entrypoint).
   -H, --headless                 Start container in headless mode (does not connect to terminal at start).
+  -T, --passthru  STRING         Pass through an argument string to the docker run script.
   -w, --wipe                     Delete the existing data volume, and create a new volume.
   -m, --miner                    Configure this as a mining node (generates blocks and clears mempool).
   -m, --miner=    POLL,INT,FUZZ  Provide an optional configuration to the mining node.
@@ -65,10 +67,10 @@ Examples:
                             or absolute.
 
   --ports 9375,80:8080      Declare a list of ports to be forwarded from within the container. You can
-                            also specify a different source:destination for each port.
+                            also specify a different internal:external destination for each port.
 
 For more information, or if you want to report any bugs / issues, 
-please visit the github page: https://github.com:cmdruid/regtest-node
+please visit the github page: https://github.com:cmdruid/regtest-workbench
 \n"
 }
 
@@ -222,7 +224,7 @@ main() {
     --mount type=bind,source=$WORKPATH/$SHAREPATH,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
     -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" -e ESC_KEYS="$ESC_KEYS" \
-  $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $IMG_NAME:latest
+  $HEADMODE $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $PASSTHRU $IMG_NAME:latest
 }
 
 ###############################################################################
@@ -244,6 +246,7 @@ for arg in "$@"; do
     -i|--devmode)      DEVMODE=1;                        shift  ;;
     -v|--verbose)      VERBOSE=1;                        shift  ;;
     -H|--headless)     HEADLESS=1;                       shift  ;;
+    -T|--passthru)     PASSTHRU=$2;                      shift 2;;                      
     -D|--domain)       DOMAIN=$2;                        shift 2;;
     -M|--mount)        add_mount $2;                     shift 2;;
     -P|--ports)        add_ports $2;                     shift 2;;
@@ -263,6 +266,7 @@ done
 ## Set default variables and flags.
 [ -z "$DOMAIN" ]   && DOMAIN="$DEFAULT_DOMAIN"
 [ -n "$VERBOSE" ]  && LINE_OUT="/dev/tty"
+[ -n "$HEADLESS" ] && HEADMODE=""
 [ -e "$ENV_PATH" ] && ENV_STR=`read_env $ENV_PATH`
 
 ## Define naming scheme.
@@ -291,16 +295,13 @@ if ! network_exists; then create_network; fi
 if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Set flags and run mode of container.
-if [ -n "$HEADLESS" ]; then
-  RUN_MODE="headless"
-  RUN_FLAGS="--init --detach --restart on-failure:2"
-elif [ -n "$DEVMODE" ]; then
+if [ -n "$DEVMODE" ]; then
   DEV_MOUNT="type=bind,source=$WORKPATH/run,target=/root/run"
   RUN_MODE="development"
-  RUN_FLAGS="-i --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+  RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
   RUN_MODE="safe"
-  RUN_FLAGS="-i --init --detach --restart on-failure:2"
+  RUN_FLAGS="--init --detach --restart on-failure:2"
 fi
 
 ## Call main container script based on run mode.
