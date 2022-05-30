@@ -112,12 +112,12 @@ fi
 # Peer Connection
 ###############################################################################
 
-[ -z $PEER_TIMEOUT ]  && PEER_TIMEOUT=$DEFAULT_PEER_TIMEOUT
-[ -z $TOR_TIMEOUT ]   && TOR_TIMEOUT=$DEFAULT_TOR_TIMEOUT
+[ -z "$PEER_TIMEOUT" ] && PEER_TIMEOUT="$DEFAULT_PEER_TIMEOUT"
+[ -z "$TOR_TIMEOUT" ]  && TOR_TIMEOUT="$DEFAULT_TOR_TIMEOUT"
 
 [ -n "$(pgrep tor)" ] \
-  && CONN_TIMEOUT=$TOR_TIMEOUT \
-  || CONN_TIMEOUT=$PEER_TIMEOUT
+  && CONN_TIMEOUT="$TOR_TIMEOUT" \
+  || CONN_TIMEOUT="$PEER_TIMEOUT"
 
 if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ] ); then
   for peer in $(printf $PEER_LIST $CHAN_LIST $USE_FAUCET | tr ',' ' '); do
@@ -220,3 +220,10 @@ if [ -n "$MINE_NODE" ]; then
     printf "Miner process running at PID: $(templ hlight "$miner_pid")" && templ ok
   fi
 fi
+
+###############################################################################
+# RPC Explorer
+###############################################################################
+
+##printf "Starting block explorer"
+##$HOME/rpc-explorer/ btc-rpc-explorer --port 8080 --bitcoind-port 18443 --bitcoind-cookie ~/.bitcoin/regtest/.cookie

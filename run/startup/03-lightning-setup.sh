@@ -100,12 +100,12 @@ fi
 # Peer Connection
 ###############################################################################
 
-[ -z $PEER_TIMEOUT ]  && PEER_TIMEOUT=$DEFAULT_PEER_TIMEOUT
-[ -z $TOR_TIMEOUT ]   && TOR_TIMEOUT=$DEFAULT_TOR_TIMEOUT
+[ -z "$PEER_TIMEOUT" ] && PEER_TIMEOUT="$DEFAULT_PEER_TIMEOUT"
+[ -z "$TOR_TIMEOUT" ]  && TOR_TIMEOUT="$DEFAULT_TOR_TIMEOUT"
 
 [ -n "$(pgrep tor)" ] \
-  && CONN_TIMEOUT=$TOR_TIMEOUT \
-  || CONN_TIMEOUT=$PEER_TIMEOUT
+  && CONN_TIMEOUT="$TOR_TIMEOUT" \
+  || CONN_TIMEOUT="$PEER_TIMEOUT"
 
 if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
   for peer in $(printf $PEER_LIST $CHAN_LIST | tr ',' ' '); do
