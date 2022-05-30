@@ -25,9 +25,9 @@ Usage: $(basename $0) [ OPTIONS ] TAG
 
 Launch a docker container for bitcoin / lightning development.
 
-Example: $(basename $0) --mine master
-         $(basename $0) --faucet=master --peers=master --channels=master alice
-         $(basename $0) --faucet=master --peers=master,alice --channels=alice bob
+Example: $(basename $0) --miner start master
+         $(basename $0) --faucet master start alice
+         $(basename $0) --faucet master --channels=alice start bob
 
 Arguments:
   TAG             Tag name used to identify the container.
@@ -38,14 +38,15 @@ Build Options  |  Parameters  |  Description
   -r, --rebuild                  Delete the existing cache, and build a new image from source.
   -d, --domain    STRING         Set the top-level domain name for the container (Default is $DEFAULT_NAME).
   -i, --devmode                  Start container in devmode (mounts ./run, does not start entrypoint).
+  -H, --headless                 Start container in headless mode (does not connect to terminal at start).
   -w, --wipe                     Delete the existing data volume, and create a new volume.
-  -m, --mine                     Configure this as a mining node (generates blocks and clears mempool).
-  -m, --mine=     POLL,INT,FUZZ  Provide an optional configuration to the mining node.
+  -m, --miner                    Configure this as a mining node (generates blocks and clears mempool).
+  -m, --miner=    POLL,INT,FUZZ  Provide an optional configuration to the mining node.
   -t, --tor                      Enable the use of Tor and onion services for this node.
   -p, --peers     TAG1,TAG2      List the peer nodes to connect to (for Bitcoin / Lightning nodes).
   -c, --channels  TAG1,TAG2      List the peer nodes to open channels with (for Lightning nodes).
   -f, --faucet    TAG            Specify a node to use as a faucet (usually a mining node).
-  -M, --mount     SRC:DEST       Declare a path to mount within the container. Can be declared multiple times.
+  -M, --mount     INT:EXT        Declare a path to mount within the container. Can be declared multiple times.
   -P, --ports     PORT1,PORT2    List a comma-separated string of ports to open within the container.
   -v, --verbose                  Outputs more information into the terminal (useful for debugging).
 
@@ -174,17 +175,19 @@ get_container_id() {
 
 login_container() {
   cid=`get_container_id $1`
-  [ -z "$cid" ] && echo "That node does not exist!" && exit 1
+  [ -z "$cid" ] && echo "That node does not exist!" && exit 3
   docker exec -it --detach-keys $ESC_KEYS $cid terminal
 }
 
 stop_container() {
-  printf "Purging existing container ... "
-  if [ -n "$VERBOSE" ]; then printf "\n"; fi
-  docker container stop $SRV_NAME > $LINE_OUT 2>&1
-  docker container rm $SRV_NAME > $LINE_OUT 2>&1
-  if container_exists; then printf "failed!\n" && exit 1; fi
-  printf "done.\n"
+  if container_exists; then
+    printf "Purging existing container ... "
+    if [ -n "$VERBOSE" ]; then printf "\n"; fi
+    docker container stop $SRV_NAME > $LINE_OUT 2>&1
+    docker container rm $SRV_NAME > $LINE_OUT 2>&1
+    if container_exists; then printf "failed!\n" && exit 1; fi
+    printf "done.\n"
+  fi
 }
 
 wipe_data() {
@@ -197,10 +200,10 @@ wipe_data() {
 
 cleanup() {
   status="$?"
-  [ -n "$EXT" ] && exit 0
+  [ -n "$EXT" ] || [ -n "$HEADLESS" ] && exit 0
   [ -z $DEVMODE ] \
-    && ([ $status -eq 1 ] || [ -n "$LOGIN" ]) \
-    && echo "You are now logged out. Node running in the background. $status" && exit 0
+    && ([ $status -eq 1 ] || ([ -n "$LOGIN" ] && [ $status -lt 2 ])) \
+    && echo "You are now logged out. Node running in the background." && exit 0
   stop_container && echo "Clean exit with status: $status" && exit 0
 }
 
@@ -209,10 +212,10 @@ cleanup() {
 ###############################################################################
 
 main() {
-  [ -n "$VERBOSE" ] && echo "$MOUNTS $PORTS $ENV_STR $ARGS_STR"
+  [ -n "$VERBOSE" ] && echo "Configuration string: $MOUNTS $PORTS $ENV_STR $ARGS_STR\n"
 
   ## Start container script.
-  docker run -it \
+  docker run -t \
     --name $SRV_NAME \
     --hostname $SRV_NAME \
     --network $NET_NAME \
@@ -231,40 +234,42 @@ set -E && trap cleanup EXIT
 ## Parse arguments.
 for arg in "$@"; do
   case $arg in
-    login)             LOGIN=1; login_container $2;      exit 0 ;;
-    compile)           EXT=1; check_binaries;            exit 0 ;;
-    -h|--help)         usage;                            exit 0 ;;
+    login)             LOGIN=1; login_container $2;      exit   ;;
+    compile)           EXT=1; check_binaries;            exit   ;;
+    start)             TAG=$2                            shift 2;;
+    -h|--help)         usage;                            exit   ;;
     -b|--build)        BUILD=1;                          shift  ;;
     -r|--rebuild)      REBUILD=1;                        shift  ;;
     -w|--wipe)         WIPE=1;                           shift  ;;
     -i|--devmode)      DEVMODE=1;                        shift  ;;
     -v|--verbose)      VERBOSE=1;                        shift  ;;
-    -d|--domain)       chk_arg $2; DOMAIN=$2;            shift 2;;
+    -H|--headless)     HEADLESS=1;                       shift  ;;
+    -D|--domain)       DOMAIN=$2;                        shift 2;;
     -M|--mount)        add_mount $2;                     shift 2;;
     -P|--ports)        add_ports $2;                     shift 2;;
     -p|--peers)        add_arg "PEER_LIST=$2";           shift 2;;
     -c|--channels)     add_arg "CHAN_LIST=$2";           shift 2;;
     -f|--faucet)       add_arg "USE_FAUCET=$2";          shift 2;;
-    -m|--mine)         add_arg "MINE_NODE=DEFAULT";      shift  ;;
-    -m=*|--mine=*)     add_arg "MINE_NODE=${arg#*=}";    shift  ;;
+    -m|--miner)        add_arg "MINE_NODE=DEFAULT";      shift  ;;
+    -m=*|--miner=*)    add_arg "MINE_NODE=${arg#*=}";    shift  ;;
     -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
   esac
 done
 
 ## If no name argument provied, display help and exit.
-if [ -z "$1" ]; then usage && exit 0; else TAG="$1"; fi
+[ -z "$TAG" ] && [ -z "$1" ] && usage && exit
+[ -z "$TAG" ] && [ -n "$1" ] && TAG=$1
 
-## Set default variables.
-if [ -z "$DOMAIN" ]; then DOMAIN="$DEFAULT_DOMAIN"; fi
+## Set default variables and flags.
+[ -z "$DOMAIN" ]   && DOMAIN="$DEFAULT_DOMAIN"
+[ -n "$VERBOSE" ]  && LINE_OUT="/dev/tty"
+[ -e "$ENV_PATH" ] && ENV_STR=`read_env $ENV_PATH`
 
 ## Define naming scheme.
 IMG_NAME="$DOMAIN-img"
 NET_NAME="$DOMAIN-net"
 SRV_NAME="$TAG.$DOMAIN.node"
 DAT_NAME="$TAG.$DOMAIN.data"
-
-## Check verbosity flag.
-if [ -n "$VERBOSE" ]; then LINE_OUT="/dev/tty"; fi
 
 ## Make sure sharepath is created.
 echo $WORKPATH > /dev/null ## Silly work-around for a silly bug.
@@ -286,22 +291,24 @@ if ! network_exists; then create_network; fi
 if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Set flags and run mode of container.
-if [ -n "$DEVMODE" ]; then
+if [ -n "$HEADLESS" ]; then
+  RUN_MODE="headless"
+  RUN_FLAGS="--init --detach --restart on-failure:2"
+elif [ -n "$DEVMODE" ]; then
   DEV_MOUNT="type=bind,source=$WORKPATH/run,target=/root/run"
   RUN_MODE="development"
-  RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
+  RUN_FLAGS="-i --rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
   RUN_MODE="safe"
-  RUN_FLAGS="--init --detach --restart on-failure:2"
+  RUN_FLAGS="-i --init --detach --restart on-failure:2"
 fi
-
-## Convert environment file into string.
-if [ -e "$ENV_PATH" ]; then ENV_STR=`read_env $ENV_PATH`; fi
 
 ## Call main container script based on run mode.
 echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
-if [ -n "$DEVMODE" ]; then
-  echo "Enter the command 'entrypoint' to begin the node startup script:" && main
+if [ -n "$HEADLESS" ]; then
+  main
+elif [ -n "$DEVMODE" ]; then
+  echo "Enter the command 'node-start' to begin the node startup script:" && main
 else
   cid=`main` && docker attach --detach-keys $ESC_KEYS $cid
 fi
