@@ -199,10 +199,10 @@ wipe_data() {
 }
 
 cleanup() {
+  ## Exit codes are complicated.
   status="$?"
   [ -n "$EXT" ] || [ -n "$HEADLESS" ] && exit 0
-  [ -z $DEVMODE ] \
-    && ([ $status -eq 1 ] || ([ -n "$LOGIN" ] && [ $status -lt 2 ])) \
+  [ -z $DEVMODE ] && ([ $status -eq 1 ] || ([ -n "$LOGIN" ] && [ $status -lt 2 ])) \
     && echo "You are now logged out. Node running in the background." && exit 0
   stop_container && echo "Clean exit with status: $status" && exit 0
 }
@@ -276,7 +276,7 @@ echo $WORKPATH > /dev/null ## Silly work-around for a silly bug.
 if [ ! -d "$WORKPATH/$SHAREPATH" ]; then mkdir -p "$WORKPATH/$SHAREPATH"; fi
 
 ## If there's an existing container, remove it.
-if container_exists; then stop_container; fi
+stop_container
 
 ## If rebuild is declared, remove existing image.
 if image_exists $IMG_NAME && [ -n "$REBUILD" ]; then remove_image; fi
