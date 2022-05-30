@@ -24,11 +24,12 @@ PEER_FILE="$PEER_PATH/$PEER_FNAME"
 DEFAULT_WALLET="Master"
 DEFAULT_LABEL="Coinbase"
 DEFAULT_MIN_FEE=0.00001
-DEFAULT_MIN_BLOCKS=150
 
 DEFAULT_PEER_TIMEOUT=10
 DEFAULT_TOR_TIMEOUT=20
-BLOCK_SYNC_TIMEOUT=30
+
+DEFAULT_MIN_BLOCKS=150
+DEFAULT_BLOCK_TIMEOUT=30
 
 ###############################################################################
 # Methods
@@ -52,7 +53,6 @@ templ banner "Bitcoin Core Configuration"
 if [ -z "$FUND_WALLET" ]; then FUND_WALLET=$DEFAULT_WALLET; fi
 if [ -z "$FUND_LABEL" ];  then FUND_LABEL=$DEFAULT_LABEL; fi
 if [ -z "$MIN_FEE" ];     then MIN_FEE=$DEFAULT_MIN_FEE; fi
-if [ -z "$MIN_BLOCKS" ];  then MIN_BLOCKS=$DEFAULT_MIN_BLOCKS; fi
 
 ## Create any missing paths.
 if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
@@ -162,6 +162,9 @@ fi
 # Blockchain Config
 ###############################################################################
 
+if [ -z "$MIN_BLOCKS" ];    then MIN_BLOCKS=$DEFAULT_MIN_BLOCKS; fi
+if [ -z "$BLOCK_TIMEOUT" ]; then BLOCK_TIMEOUT=$DEFAULT_BLOCK_TIMEOUT; fi
+
 echo && printf "Blockchain state: "
 if incomplete_chain; then
   ## Blockchain download is incomplete.
@@ -170,8 +173,8 @@ if incomplete_chain; then
     printf "$(templ hlight 'CONNECTING' 255 220)"
     if get_peer_count; then
       ## Connected to existing peers on the network.
-      printf "\n$IND Waiting (up to ${BLOCK_SYNC_TIMEOUT}s) for blockchain to sync with peers ."
-      ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_SYNC_TIMEOUT
+      printf "\n$IND Waiting (up to ${BLOCK_TIMEOUT}s) for blockchain to sync with peers ."
+      ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_TIMEOUT
       if incomplete_chain; then printf "timed out!" && templ skip && exit 2; else templ ok; fi
     elif [ -n "$PEER_LIST" ]; then
       ## Unable to connect to any peers.
