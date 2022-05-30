@@ -56,7 +56,7 @@ if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 $LIBPATH/start/lightning/lightningd-start.sh
 
 ## Start CL-REST Server
-#sh -c $LIBPATH/start/lightning/cl-rest-start.sh
+$LIBPATH/start/lightning/cl-rest-start.sh
 
 ###############################################################################
 # Payment Configuration
