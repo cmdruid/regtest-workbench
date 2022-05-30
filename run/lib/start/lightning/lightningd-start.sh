@@ -37,8 +37,8 @@ gen_keystr() {
 
 gen_logstr() {
   [ -n "$1" ] && (
-    SPARK_USER=`cat $1 |kgrep SPARK_USER`
-    SPARK_PASS=`cat $1 |kgrep SPARK_PASS`
+    SPARK_USER=`cat $1 | kgrep USERNAME`
+    SPARK_PASS=`cat $1 | kgrep PASSWORD`
     printf %s "--sparko-login=$SPARK_USER:$SPARK_PASS"
   )
 }
@@ -94,6 +94,8 @@ if [ -z "$DAEMON_PID" ]; then
   fi
   config="$config $(gen_keystr $KEYS_FILE) $(gen_logstr $CRED_FILE)"
   templ ok
+
+  echo "Config String: $config"
 
   ## Start lightning and wait for it to load.
   echo && printf "Starting lightning daemon" && templ prog
