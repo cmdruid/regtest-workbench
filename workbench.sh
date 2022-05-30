@@ -12,6 +12,7 @@ WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
 ESC_KEYS="ctrl-z"       ## Escape sequence for detaching from terminals.
 HEADMODE="-i"           ## Container connects to terminal by default.
+SPAWN_DELAY=3           ## Delay (in seconds) to wait between spawning nodes.
 
 DATAPATH="data"         ## Default path for a node's interal storage.
 SHAREPATH="share"       ## Default path to publish connection info.
@@ -37,27 +38,41 @@ Build Options  |  Parameters  |  Description
   -h, --help                     Display this help text and exit.
   -b, --build                    Build a new dockerfile image, using existing cache.
   -r, --rebuild                  Delete the existing cache, and build a new image from source.
-  -d, --domain    STRING         Set the top-level domain name for the container (Default is $DEFAULT_NAME).
   -i, --devmode                  Start container in devmode (mounts ./run, does not start entrypoint).
   -H, --headless                 Start container in headless mode (does not connect to terminal at start).
-  -T, --passthru  STRING         Pass through an argument string to the docker run script.
   -w, --wipe                     Delete the existing data volume, and create a new volume.
   -m, --miner                    Configure this as a mining node (generates blocks and clears mempool).
   -m, --miner=    POLL,INT,FUZZ  Provide an optional configuration to the mining node.
-  -t, --tor                      Enable the use of Tor and onion services for this node.
-  -l, --local                    When combined with --tor, forces local peering but allows hidden services.
   -p, --peers     TAG1,TAG2      List the peer nodes to connect to (for Bitcoin / Lightning nodes).
   -c, --channels  TAG1,TAG2      List the peer nodes to open channels with (for Lightning nodes).
   -f, --faucet    TAG            Specify a node to use as a faucet (usually a mining node).
+  -d, --domain    STRING         Set the top-level domain name for the container (Default is $DEFAULT_NAME).
+  -t, --tor                      Enable the use of Tor and onion services for this node.
+  -l, --local                    When combined with --tor, forces local peering but allows hidden services.
   -M, --mount     INT:EXT        Declare a path to mount within the container. Can be declared multiple times.
   -P, --ports     PORT1,PORT2    List a comma-separated string of ports to open within the container.
+  -T, --passthru  STRING         Pass through an argument string to the docker run script.
   -v, --verbose                  Outputs more information into the terminal (useful for debugging).
 
+Spawn Options:
+  NOTE: Spawn is only compatible with the flags below. All flags must precede 'spawn' keyword.
+
+  spawn           STRING         Spawn multiple nodes at once, using optional STRING as domain name.
+  --spawn-conf    STRING         Path to the spawn config file to use. Default is './spawn.conf'.
+  --no-kill                      If a node in the spawn config is already running, don't replace it.
+
 Other Options:
+  Utility commands for managing images and nodes.
+
   compile                        Checks build/out and compiles any missing binary files.
   login           TAG            Login to an existing node that is currently running.
 
-Examples:
+Example Commands:
+  $(basename $0) compile         Example command for pre-compiling all binaries in build/dockerfiles.
+  $(basename $0) login alice     Example command for logging into the terminal for alice.
+  $(basename $0) spawn regswarm  Example command for spawning nodes with 'regswarm' domain and default spawn.conf file.
+
+Example Flags:
   --mine=poll,int,fuzz      Configure your mining node to poll every x seconds for transactions,
   (e.x --mine=2,60,20)      or mine blocks continuously at an interval (or both!). If you are running
                             multiple mining nodes, set the fuzz value to add random variation to each
@@ -193,6 +208,24 @@ stop_container() {
   fi
 }
 
+spawn_nodes() {
+  ## Set domain name.
+  [ -n "$1" ] && domain="$1" || domain="regtest"
+  ## Set default config path.
+  [ -n "$SPAWNCONF" ] && conf=$SPAWNCONF || conf="$WORKPATH/spawn.conf"
+  ## Check if config file exists.
+  [ ! -e "$conf" ] && echo "Spawn config file not found!" && exit 0
+  ## Run the spawn loop.
+  IMG_NAME="$domain-img" build_image
+  printf "Spawning $domain network:\n"
+  cat $conf | while read line; do
+    [ -n "$(echo $line | grep -E '^ *#')" ] && continue
+    name=`echo "$line" | awk '{print $2}'`
+    printf "Starting $name node ...\n"
+    NOKILL=$NOKILL ./workbench.sh $line --domain $domain --headless && sleep $SPAWN_DELAY
+  done
+}
+
 wipe_data() {
   printf "Purging existing data volume ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
@@ -215,7 +248,8 @@ cleanup() {
 ###############################################################################
 
 main() {
-  [ -n "$VERBOSE" ] && echo "Configuration string: $MOUNTS $PORTS $ENV_STR $ARGS_STR\n"
+  [ -n "$VERBOSE" ] && echo \
+  "Configuration string: $HEADMODE $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $PASSTHRU\n"
 
   ## Start container script.
   docker run -t \
@@ -237,9 +271,10 @@ set -E && trap cleanup EXIT
 ## Parse arguments.
 for arg in "$@"; do
   case $arg in
-    login)             LOGIN=1; login_container $2;      exit   ;;
-    compile)           EXT=1; check_binaries;            exit   ;;
+    login)             LOGIN=1;   login_container $2;    exit   ;;
+    compile)           EXT=1;     check_binaries;        exit   ;;
     start)             TAG=$2                            shift 2;;
+    spawn)             spawn_nodes $2;                   exit   ;;
     -h|--help)         usage;                            exit   ;;
     -b|--build)        BUILD=1;                          shift  ;;
     -r|--rebuild)      REBUILD=1;                        shift  ;;
@@ -258,6 +293,8 @@ for arg in "$@"; do
     -m=*|--miner=*)    add_arg "MINE_NODE=${arg#*=}";    shift  ;;
     -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
     -l|--local)        add_arg "LOCAL_ONLY=1";           shift  ;;
+    --spawn-conf)      SPAWNCONF=$2;                     shift 2;;
+    --no-kill)         NOKILL=1;                         shift  ;;           
   esac
 done
 
@@ -282,7 +319,9 @@ echo $WORKPATH > /dev/null ## Silly work-around for a silly bug.
 if [ ! -d "$WORKPATH/$SHAREPATH" ]; then mkdir -p "$WORKPATH/$SHAREPATH"; fi
 
 ## If there's an existing container, remove it.
-stop_container
+if [ -n "$NOKILL" ] && container_exists; then
+  echo "Container already running for $SRV_NAME, aborting!" && exit 0
+else stop_container; fi
 
 ## If rebuild is declared, remove existing image.
 if image_exists $IMG_NAME && [ -n "$REBUILD" ]; then remove_image; fi

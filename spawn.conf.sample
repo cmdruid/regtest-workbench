@@ -1,0 +1,6 @@
+## Sample config for spawning multiple nodes.
+start master --miner=0,10,0 -w
+start alice --miner -p master -w
+start bob -f master -c alice -w
+start carol -f master -c alice -w
+## EOF
