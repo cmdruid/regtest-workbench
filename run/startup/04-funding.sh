@@ -59,11 +59,11 @@ is_node_connected() {
 }
 
 is_channel_confirmed() {
-  [ -n "$1" ] && [ "$(lcli peerchannelcount "$1")" != "0" ]
+  [ -n "$1" ] && [ "$(pycli peerchannelcount "$1")" != "0" ]
 }
 
 is_channel_funded() {
-  [ -n "$1" ] && [ "$(lcli peerchannelbalance "$1")" != "0" ]
+  [ -n "$1" ] && [ "$(pycli peerchannelbalance "$1")" != "0" ]
 }
 
 ###############################################################################
@@ -217,7 +217,7 @@ if [ -n "$CHAN_LIST" ]; then
         lightning-cli fundchannel id=$node_id amount=$sat_amt minconf=0 > /dev/null 2>&1
         while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
       fi
-      printf "$IND Channel balance:"; templ brkt "$(lcli peerchannelbalance $node_id)"
+      printf "$IND Channel balance:"; templ brkt "$(pycli peerchannelbalance $node_id)"
     else
       printf "$IND No connection to $peer!" && templ fail
     fi

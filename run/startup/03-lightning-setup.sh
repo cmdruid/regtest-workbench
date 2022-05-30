@@ -27,11 +27,11 @@ get_peer_config() {
 }
 
 is_node_configured() {
-  [ -n "$1" ] && [ -n "$(lcli getpeerlist | grep $1)" ]
+  [ -n "$1" ] && [ -n "$(pycli getpeerlist | grep $1)" ]
 }
 
 is_node_connected() {
-  [ -n "$1" ] && [ -n "$(lcli getconnectedpeers | grep $1)" ]
+  [ -n "$1" ] && [ -n "$(pycli getconnectedpeers | grep $1)" ]
 }
 
 ###############################################################################
