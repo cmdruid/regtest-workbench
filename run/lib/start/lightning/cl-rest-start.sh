@@ -67,8 +67,8 @@ if [ -z "$DAEMON_PID" ]; then
 
   # Wait for lightningd to load, then start other services.
   tail -f $LOG_FILE | while read line; do
-    echo "$line" | grep "cl-rest api server is ready"
     [ -n "$DEVMODE" ] && printf "$IND $line\n"
+    echo "$line" | grep "cl-rest api server is ready" > /dev/null 2>&1
     if [ $? = 0 ]; then
       [ -n "$(pgrep -f 'node cl-rest.js')" ] \
         && printf "$IND CL-REST server is now running!" \
