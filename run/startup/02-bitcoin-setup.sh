@@ -110,8 +110,8 @@ fi
 # Peer Connection
 ###############################################################################
 
-if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
-  for peer in $(printf $PEER_LIST $CHAN_LIST | tr ',' ' '); do
+if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ]); then
+  for peer in $(printf $PEER_LIST $CHAN_LIST $USE_FAUCET | tr ',' ' '); do
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer: "
