@@ -19,32 +19,35 @@ cd regtest-workbench
 ./workbench.sh compile
 
 ## Your first (and main) node. Seeds the blockchain and mines blocks.
-./workbench.sh --miner start master
+./workbench.sh start master --miner
 
 ## Meet Alice, who connects to master and requests funding.
-./workbench.sh --faucet master start alice
+./workbench.sh start alice --faucet master
 
-## Meet Bob, also funded by master, who peers and opens a channel with Alice (using short-hand).
-./workbench.sh --faucet master --channels alice start bob
+## Meet Bob, also funded by master, who peers and opens a channel with Alice.
+./workbench.sh start bob --faucet master --channels alice
+
+## Meet Carol, who likes to use shorter commands and start in headless mode.
+./workbench.sh start carol -f master -c alice,bob --headless
 
 ## ... repeat for as many nodes as you like!
 
 ## A quick tutorial is also built into the help screen.
 ./workbench.sh --help
 ```
-Based on the above configuration, each node will automatically connect to their designated peers, request funds from a faucet, and open payment channels. The final argument designates each node with a name tag.
+Based on the above configuration, each node will automatically connect to their designated peers, request funds from a faucet, and open payment channels. The `start` keyword designates your node with a name tag.
 
-Use the `--miner` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default height is 150.
+Use the `--miner` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default starting height is 150.
 
-By default, Your miner is configured to watch the mempool, then auto-generate blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds so that transactionswill confirm quickly. If you wish to deploy multiple miners, you should use longer timings in order to avoid chain splits.
+By default, Your miner is configured to watch the mempool, then auto-generate blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds, so transactions should confirm quickly. If you wish to deploy multiple miners, use a different configuration that avoids chain splits.
 
-The format for configuring your mining node is `--miner=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20.
+The format for configuring your mining node is `--miner=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20 seconds.
 
 The `--peers` flag will instruct nodes on whom to peer with, and receive transactions / blocks.
 The `--faucet` flag will instruct your node to peer and request funds from another node.
 The `--channels` flag will instruct your node to peer and open channels with another node.
 
-Channels start with a default balance of 5 million sats, which is auto-balanced between nodes.
+By default, nodes will request a balance of 10 BTC, and open channels with a balance of 5 million sats (split 50/50 between parties). You can modify these settings (and much more) by editing the `.env` file at the root of this repo.
 
 The `--peers` and `--channels` flags accept a comma-separated list of nametags (*e.x alice,bob,carol*).  Nodes are smart enough to configure their own wallets, negotiate funding, and balance their own channels!
 
@@ -58,9 +61,11 @@ All pertinent settings, keys and credentials for a node is namespaced and stored
 
 Each node launches with a simple web-wallet for managing invoices and test payments (*provided by sparko*). Nodes will print their local address and login credentials to the console upon startup. You can also manage payments easily using `bitcoin-cli` and `lightning-cli`.
 
- If you have a node suffering from issues, run the `node-start` command in the node's terminal. It is the main start script, and designed to help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process.
+> Tip: *The short-hand `bcli` and `lcli` are also available. Check out the `config/.bash_aliases` file to learn more!*
 
-> Tip: *Use the `--devmode` flag to enter a node's console before the startup script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)*
+Use the `--devmode` flag to enter a node's console before the startup script is run. This flag will also mount the /run folder directly, allowing you to hack / modify the source code for this project in real-time. Don't forget to use version control. ;-)
+
+> Tip: *If you have a node suffering from issues, run the `node-start` command within the node's terminal. It is the main start script, and designed to help refresh configurations, restart services, or diagnose / resolve issues that crop up during the startup process. If all else fails, restart the node using the`--wipe` flag to erase its persistent storage, and give your node a fresh start!*
 
 All nodes ship with Flask and Nodejs included, plus a core library of development tools. Check out the example projects located in `contrib/examples` if you want to jump into web/app development right away!
 
@@ -125,6 +130,8 @@ If you end up borking a node, use the `--wipe` flag at launch to erase the node'
 To mount a folder into your node environment, use the format `--mount local/path:/mount/path`. Paths can be relative or absolute.
 
 To open and forward ports from your node environment, use the format `--ports int1:ext1,int2:ext2, ...`, with a comma to separate port declarations, and colon to separate internal:external ports.
+
+The `--passthru` flag will allow you to pass a quoted string of flags directly to the internal `docker run` script. With great power comes great responsibility! :-)
 
 ## Contribution
 
