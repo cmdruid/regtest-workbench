@@ -11,7 +11,7 @@ DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
 ESC_KEYS="ctrl-z"       ## Escape sequence for detaching from terminals.
-HEADMODE="-i"           ## Container start connects to terminal by default.
+HEADMODE="-i"           ## Container connects to terminal by default.
 
 DATAPATH="data"         ## Default path for a node's interal storage.
 SHAREPATH="share"       ## Default path to publish connection info.
