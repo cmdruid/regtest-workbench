@@ -8,26 +8,26 @@ from argparse import ArgumentParser
 import subprocess
 import json
 
-CLI_BINARY = "lightning-cli"
+CLI = "lightning-cli"
 VERBOSE = False
 
-def lcli(cmd, args=''):
-  if which(CLI_BINARY) is None:
+
+def lcli(cmd, args='', rawFormat=False):
+  if which(CLI) is None:
     ## If binary does not exist, raise exception.
-    raise Exception(f"{CLI_BINARY} not found! Check if it is installed in your PATH.")
+    raise Exception(f"{CLI} not found! Check if it is installed in your PATH.")
   
-  arglist = split(f"{CLI_BINARY} {cmd} {args}")
+  arglist = split(f"{CLI} {cmd} {args}")
   process = subprocess.run(arglist, capture_output=True)
 
-  if VERBOSE:
-    ## If verbose, print the process object.
-    print(process)
   if process.returncode != 0:
     ## If return code not 0, raise an exception.
-    errStr = f"{process.stderr.decode('ascii')}"
-    stdStr = json.dumps(json.loads(process.stdout), indent=2)
+    errStr = f"{process.stderr.decode('utf8')}"
+    stdStr = json.dumps(json.loads(process.stdout.decode('utf8')), indent=2)
     raise Exception(f"Error returned code {process.returncode}: {errStr}\n{stdStr}")
-  return json.loads(process.stdout)
+  if rawFormat:
+    return process.stdout.decode('utf8')
+  return json.loads(process.stdout.decode('utf8'))
 
 
 def getbalance():
@@ -78,7 +78,9 @@ def peerchannelbalance(id):
   channels = [ ch for ch in getpeerchannels(id) if ch["state"] == "CHANNELD_NORMAL" ]
   if len(channels):
     funds = channels[0]
-    return f"{msat_to_sat(funds['spendable_msatoshi'])} / {msat_to_sat(funds['receivable_msatoshi'])}"
+    spendable  = msat_to_sat(funds['spendable_msatoshi'])
+    receivable = msat_to_sat(funds['receivable_msatoshi'])
+    return "{} / {}".format(spendable, receivable)
   else:
     return 0
 
@@ -98,8 +100,25 @@ def msat_to_sat(val):
   return val / 1000 if val else 0
 
 
+def print_result(result):
+  if result is None:
+    return  ## If result is None, return nothing.
+  elif type(result) is list: 
+    if len(result) < 1:
+      return  ## If list is empty, return nothing.
+    elif type(result[0]) is str:
+      print('\n'.join(result))  ## If list of strings, use shell-friendly format.
+    else:
+      print(json.dumps(result, indent=2))  ## Print formatted JSON.
+  elif type(result) is dict:
+    print(json.dumps(result, indent=2))  ## Print formatted JSON.
+  else:                           
+    print(result)
+  return
+
+
 def main():
-  parser = ArgumentParser(description=f"Advanced {CLI_BINARY} utility")
+  parser = ArgumentParser(description=f"Advanced {CLI} utility")
   parser.add_argument('command', type=str, help="Command to execute.")
   parser.add_argument('arguments', type=str, nargs='*', help="Arguments to pass into command.")
   parser.add_argument('-v', '--verbose', action='store_true', help="Use verbose output.")
@@ -108,6 +127,9 @@ def main():
   VERBOSE   = args.verbose
   command   = args.command
   arguments = args.arguments
+
+  if not arguments:
+    arguments=''
 
   try:
     if command not in globals():
@@ -120,21 +142,7 @@ def main():
       ## Call the named method without arguments.
       result = globals()[command]()
 
-    if result is None:
-      ## If result is None, return nothing.
-      return
-    elif type(result) is list:
-      ## If output is a list, format for terminal output.
-      if len(result) < 1:
-        ## If list is empty, return nothing.
-        return
-      if type(result[0]) is str:
-        ## If this is a list of strings, use shell-friendly format.
-        print('\n'.join(result))
-      else:
-        print(json.dumps(result, indent=2))
-    else:
-      print(json.dumps(result, indent=2))
+    print_result(result)
 
   except Exception as e:
     if VERBOSE:
