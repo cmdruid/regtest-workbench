@@ -52,7 +52,7 @@ def send_invoice(peer_id, bolt11):
 def pay_invoice(bolt11):
   """Pay a BOLT11 invoice."""
   result = plugin.rpc.call('pay', [ bolt11 ])
-  plugin.log(f'Paid auto-balance invoice for {result['msatoshi']} msats.')
+  plugin.log(f"Paid auto-balance invoice for {result['msatoshi']} msats.")
 
 
 @plugin.async_hook('custommsg')
