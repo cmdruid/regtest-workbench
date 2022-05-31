@@ -30,11 +30,11 @@ get_peer_config() {
 }
 
 is_node_configured() {
-  [ -n "$1" ] && [ -n "$(pycli getpeerlist | grep $1)" ]
+  [ -n "$1" ] && [ -n "$(lnpy getpeerlist | grep $1)" ]
 }
 
 is_node_connected() {
-  [ -n "$1" ] && [ -n "$(pycli getconnectedpeers | grep $1)" ]
+  [ -n "$1" ] && [ -n "$(lnpy getconnectedpeers | grep $1)" ]
 }
 
 ###############################################################################
@@ -56,7 +56,7 @@ if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 $LIBPATH/start/lightning/lightningd-start.sh
 
 ## Start CL-REST Server
-$LIBPATH/start/lightning/cl-rest-start.sh
+[ -n "$REST_NODE" ] && $LIBPATH/start/lightning/cl-rest-start.sh
 
 ###############################################################################
 # Payment Configuration
