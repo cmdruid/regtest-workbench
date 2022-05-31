@@ -47,6 +47,7 @@ Build Options  |  Parameters  |  Description
   -c, --channels  TAG1,TAG2      List the peer nodes to open channels with (for Lightning nodes).
   -f, --faucet    TAG            Specify a node to use as a faucet (usually a mining node).
   -d, --domain    STRING         Set the top-level domain name for the container (Default is $DEFAULT_NAME).
+  -r, --rest                     Enable the CL-REST interface for this node.
   -t, --tor                      Enable the use of Tor and onion services for this node.
   -l, --local                    When combined with --tor, forces local peering but allows hidden services.
   -M, --mount     INT:EXT        Declare a path to mount within the container. Can be declared multiple times.
@@ -291,6 +292,7 @@ for arg in "$@"; do
     -f|--faucet)       add_arg "USE_FAUCET=$2";          shift 2;;
     -m|--miner)        add_arg "MINE_NODE=DEFAULT";      shift  ;;
     -m=*|--miner=*)    add_arg "MINE_NODE=${arg#*=}";    shift  ;;
+    -r|--rest)         add_arg "REST_NODE=1";            shift  ;;
     -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
     -l|--local)        add_arg "LOCAL_ONLY=1";           shift  ;;
     --spawn-conf)      SPAWNCONF=$2;                     shift 2;;
@@ -336,13 +338,10 @@ if ! network_exists; then create_network; fi
 if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
 
 ## Set flags and run mode of container.
-if [ -n "$DEVMODE" ]; then
+if [ -n "$DEVMODE" ] && [ -z "$HEADLESS" ]; then
   DEV_MOUNT="type=bind,source=$WORKPATH/run,target=/root/run"
   RUN_MODE="development"
-  RUN_FLAGS="--mount $DEV_MOUNT -e DEVMODE=1"
-  [ -n "$HEADLESS" ] \
-    && RUN_FLAGS="$RUN_FLAGS --detach" \
-    || RUN_FLAGS="$RUN_FLAGS --rm --entrypoint bash"
+  RUN_FLAGS="--rm --entrypoint bash --mount $DEV_MOUNT -e DEVMODE=1"
 else
   RUN_MODE="safe"
   RUN_FLAGS="--init --detach --restart on-failure:2"
