@@ -1,0 +1,10 @@
+.paymentList {
+  margin: 0 auto;
+  vertical-align: top;
+  text-align: center
+}
+
+.payment {
+  word-wrap: break-word; 
+  width: 400px
+}
