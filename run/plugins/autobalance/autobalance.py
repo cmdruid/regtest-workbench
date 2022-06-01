@@ -37,6 +37,7 @@ def generate_invoice(amount, peer):
   plugin.log(f"Generated auto-balance invoice for {amount} msats.")
   return invoice['bolt11']
 
+
 @plugin.method("autopay-invoice")
 def send_invoice(peer_id, bolt11):
   """Send an invoice to peer."""
@@ -56,18 +57,18 @@ def pay_invoice(bolt11):
 
 
 @plugin.async_hook('custommsg')
-def on_custommsg(peer_id, payload, plugin, **kwargs):
+def on_custommsg(peer_id, payload, plugin, request, **kwargs):
   """Use custommsg hook to receive invoice requests."""
   pbytes  = bytes.fromhex(payload)
   mtype   = int.from_bytes(pbytes[:2], "big")
-  plugin.log('Received payload type: {}'.format(hex(mtype)))
   ## Check if message header matches our type.
   if hex(mtype) == MESSAGE_TYPE.lower():
     msgid   = int.from_bytes(pbytes[2:10], "big")
     data    = pbytes[10:].decode()
     plugin.log('Received invoice request from peer: {}'.format(peer_id))
     pay_invoice(data)
-  return {'result': 'continue'}
+    return request.set_result({'result': 'exit'})
+  return request.set_result({'result': 'continue'})
 
 
 @plugin.init()

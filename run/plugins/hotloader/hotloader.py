@@ -69,6 +69,8 @@ def check_plugins(watchpath):
 def restart_plugin(pname, fpath):
   """Attempt to start/restart the plugin using LightningRpc."""
   try:
+    #plugin.rpc.call('plugin', { 'subcommand': 'stop', 'plugin': fpath })
+    #sleep(1)
     plugin.rpc.call('plugin', { 'subcommand': 'start', 'plugin': fpath })
   except RpcError as err:
     print(f"Plugin '{pname}' failed to execute: {err.error}")
@@ -88,6 +90,5 @@ def init(options, configuration, plugin):
 plugin.add_option('hotload-state', 'disabled', f"Default state of plugin when lightningd starts.")
 plugin.add_option('hotload-path', DEFAULT_PLUGPATH, f"Plugin path to check for file changes. Default is {DEFAULT_PLUGPATH} path.")
 plugin.add_option('hotload-interval', DEFAULT_INTERVAL, f"Interval to check for file changes. Default is {DEFAULT_INTERVAL} seconds.")
-
 
 plugin.run()
