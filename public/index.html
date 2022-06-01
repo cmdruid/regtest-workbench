@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Lightning RPC Terminal</title>
+  </head>
+  <body>
+    <section>
+      <h1>LightningRPC Terminal</h1>
+      <p>Connect to your Core Lightning Node using websockets!</p>
+
+      <div class="container">
+        <div class="title-bar">
+          <p>Info Window</p>
+        </div>
+        <div class="info-window">
+          <pre>Connection failed! Check your settings!</pre>
+        </div>
+      </div>
+      
+      <div class="container">
+        <div class="title-bar">
+          <p>Terminal Window</p>
+        </div>
+        <div class="terminal-window">
+          <p>
+            This terminal has access to all commands behind the lightning-rpc interface, 
+            including ones from custom plugins.
+          </p>
+          <p>
+            Try out a few commands for yourself, like 'listpeers' or 'listfunds'. 
+            There's a link to more commands down below.
+          </p>
+          <p>
+            The log window will stream event messages that are published from the lightningd daemon. 
+            Very useful for debugging!
+          </p>
+        </div>
+        <div class="cmd-window">
+          <div class="terminal-prompt">
+            <span class="prompt-user">root@alice:</span>
+            <span class="prompt-location">~</span>
+            <span class="prompt-dollar">$</span>
+            <span class="prompt-cursor"></span>
+            <input class="command-line"/>
+            <span class="send-btn">[ enter ]</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="title-bar">
+          <p>Log Window</p>
+        </div>
+        <div class="event-window">
+        </div>
+      </div>
+    </section>
+    <script src="lib/app.js" type="module"></script>
+  </body>
+</html>
