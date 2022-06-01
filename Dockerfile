@@ -17,7 +17,7 @@ RUN pip3 install Flask pyln-client
 RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && apt-get install -y nodejs
 
 ## Install node packages.
-RUN npm install -g npm yarn
+RUN npm install -g npm yarn clightningjs
 
 ## Copy over binaries.
 COPY build/out/* /tmp/bin/
@@ -74,6 +74,7 @@ RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/node-start
 ## Configure run environment.
 ENV PATH="$LIBPATH/bin:$HOMEDIR/.local/bin:$PATH"
 ENV PYPATH="$LIBPATH/pylib:$PYPATH"
+ENV NODE_PATH="$LIBPATH/nodelib:$NODE_PATH"
 ENV RUNPATH="$RUNPATH"
 ENV LIBPATH="$LIBPATH"
 ENV LOGPATH="/var/log"
