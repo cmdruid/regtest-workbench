@@ -6,8 +6,8 @@ node_modules
 /run/config/.*
 /run/lib/.*
 /run/plugins/.*
-/run/lib/pylib
-/run/lib/nodelib
+/run/lib/pylib/*
+/run/lib/nodelib/*
 /run/startup/*.skip
 /run/plugins/.*
 /share
