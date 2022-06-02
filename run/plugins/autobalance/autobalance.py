@@ -31,14 +31,15 @@ def on_channel_state_changed(plugin, channel_state_changed, **kwargs):
     send_invoice(peerId, invoice)
     
 
-def generate_invoice(amount, peer):
+def generate_invoice(amount, peer, label='autopay'):
   """Generate an invoice for peer."""
-  invoice = plugin.rpc.call('invoice', [ amount, peer, 'autobalance' ])
-  plugin.log(f"Generated auto-balance invoice for {amount} msats.")
+  rand_id = random.randint(0, 2**64)
+  invoice = plugin.rpc.call('invoice', [ amount, peer, rand_id, label ])
+  plugin.log(f"Generated {label} invoice for {amount} msats.")
   return invoice['bolt11']
 
 
-@plugin.method("autopay-invoice")
+@plugin.method("autoinvoice")
 def send_invoice(peer_id, bolt11):
   """Send an invoice to peer."""
   msgtype = int(MESSAGE_TYPE, 16)
@@ -48,6 +49,7 @@ def send_invoice(peer_id, bolt11):
             + bytes(bolt11, encoding='utf8'))
   plugin.log("Sending invoice to peer: {}".format(peer_id))
   plugin.rpc.call('sendcustommsg', {'node_id': peer_id, 'msg': msg.hex()})
+  return "Sent invoice to peer: {}".format(peer_id)
 
 
 def pay_invoice(bolt11):
@@ -67,7 +69,7 @@ def on_custommsg(peer_id, payload, plugin, request, **kwargs):
     data    = pbytes[10:].decode()
     plugin.log('Received invoice request from peer: {}'.format(peer_id))
     pay_invoice(data)
-    return request.set_result({'result': 'exit'})
+    return
   return request.set_result({'result': 'continue'})
 
 
