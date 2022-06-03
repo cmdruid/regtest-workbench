@@ -207,6 +207,8 @@ if [ -n "$CHAN_LIST" ]; then
   sat_amt="$CHAN_DEPOSIT"
   for peer in $(printf $CHAN_LIST | tr ',' ' '); do
 
+    [ "$peer" = "$HOSTNAME" ] && continue
+
     ## Search for peer file in peers path.
     echo && printf "Checking channel with $peer:\n"
     config=`get_peer_config $peer lightning-peer.conf`

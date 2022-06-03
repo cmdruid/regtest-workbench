@@ -109,6 +109,8 @@ fi
 
 if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
   for peer in $(printf $PEER_LIST $CHAN_LIST | tr ',' ' '); do
+
+    [ "$peer" = "$HOSTNAME" ] && continue
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer:"

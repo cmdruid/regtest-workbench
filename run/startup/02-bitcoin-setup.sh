@@ -120,7 +120,9 @@ fi
   || CONN_TIMEOUT="$PEER_TIMEOUT"
 
 if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ] ); then
-  for peer in $(printf $PEER_LIST $CHAN_LIST $USE_FAUCET | tr ',' ' '); do
+  for peer in $(printf $USE_FAUCET $PEER_LIST $CHAN_LIST | tr ',' ' '); do
+
+    [ "$peer" = "$HOSTNAME" ] && continue
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer: "
