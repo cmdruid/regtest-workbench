@@ -27,9 +27,10 @@ Usage: $(basename $0) [ OPTIONS ] TAG
 
 Launch a docker container for bitcoin / lightning development.
 
-Example: $(basename $0) --miner start master
-         $(basename $0) --faucet master start alice
-         $(basename $0) --faucet master --channels=alice start bob
+Example: $(basename $0) build
+         $(basename $0) start master --miner
+         $(basename $0) start alice --faucet master
+         $(basename $0) start bob --faucet master --channels alice
 
 Arguments:
   TAG             Tag name used to identify the container.
@@ -58,14 +59,15 @@ Build Options  |  Parameters  |  Description
 Spawn Options:
   NOTE: Spawn is only compatible with the flags below. All flags must precede 'spawn' keyword.
 
-  spawn           STRING         Spawn multiple nodes at once, using optional STRING as domain name.
-  --spawn-conf    STRING         Path to the spawn config file to use. Default is './spawn.conf'.
-  --no-kill                      If a node in the spawn config is already running, don't replace it.
+  spawn           STRING         Spawn multiple nodes at once, using optional STRING to specify the name of
+                                 a .conf file in the ./spawn folder. Default file used is 'spawn.conf'.       
+  --no-kill                      If a node in the spawn config is already running, don't kill it.
 
 Other Options:
   Utility commands for managing images and nodes.
 
-  compile                        Checks build/out and compiles any missing binary files.
+  build                          Compiles any missing binary files and builds the image.
+  rebuild                        Removes the existing image cache and builds from scratch.
   login           TAG            Login to an existing node that is currently running.
 
 Example Commands:
@@ -162,20 +164,25 @@ check_binaries() {
   [ -n "$EXT" ] && echo "All binary files are compiled and ready!"
 }
 
-build_image() {
-  check_binaries
-  printf "Building image for $IMG_NAME from dockerfile ... "
-  if [ -n "$VERBOSE" ]; then printf "\n"; fi
-  DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
-  if ! image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
-  printf "done.\n"
-}
-
 remove_image() {
+  [ -n "$IMG_NAME" ] \
+    || ( [ -n "$1" ] && IMG_NAME="$1" ) \
+    || IMG_NAME="$DEFAULT_DOMAIN-img"
   printf "Removing existing image ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker image rm $IMG_NAME > $LINE_OUT 2>&1
   if image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
+  printf "done.\n"
+}
+
+build_image() {
+  check_binaries
+  [ -n "$1" ] && IMG_NAME="$1"
+  [ -n "$IMG_NAME" ] || IMG_NAME="$DEFAULT_DOMAIN-img"
+  printf "Building image for $IMG_NAME from dockerfile ... "
+  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
+  if ! image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
   printf "done.\n"
 }
 
@@ -210,20 +217,18 @@ stop_container() {
 }
 
 spawn_nodes() {
-  ## Set domain name.
-  [ -n "$1" ] && domain="$1" || domain="regtest"
-  ## Set default config path.
-  [ -n "$SPAWNCONF" ] && conf=$SPAWNCONF || conf="$WORKPATH/spawn.conf"
-  ## Check if config file exists.
-  [ ! -e "$conf" ] && echo "Spawn config file not found!" && exit 0
+  ## Set defaults.
+  [ -n "$DOMAIN" ] || DOMAIN="$DEFAULT_DOMAIN"
+  [ -n "$1" ] && conf="$WORKPATH/spawn/$1.conf" || conf="$WORKPATH/spawn/spawn.conf"
+  ## Check spawn config file exists.
+  [ -e "$conf" ] || ( echo "Spawn config file not found!" && exit )
   ## Run the spawn loop.
-  IMG_NAME="$domain-img" build_image
-  printf "Spawning $domain network:\n"
+  build_image "$DOMAIN-img"
+  printf "Spawning $DOMAIN network:\n"
   cat $conf | while read line; do
-    [ -n "$(echo $line | grep -E '^ *#')" ] && continue
-    name=`echo "$line" | awk '{print $2}'`
-    printf "Starting $name node ...\n"
-    NOKILL=$NOKILL ./workbench.sh $line --domain $domain --headless && sleep $SPAWN_DELAY
+    [ -n "$(echo $line | grep -E '^ *#')" ] && continue  ## Ignore commented lines.
+    printf "Starting node: $line"
+    NOKILL=$NOKILL ./workbench.sh $line --domain $DOMAIN --headless && sleep $SPAWN_DELAY
   done
 }
 
@@ -238,10 +243,9 @@ wipe_data() {
 cleanup() {
   ## Exit codes are complicated.
   status="$?"
-  [ -n "$EXT" ] || [ -n "$HEADLESS" ] && exit 0
-  [ -z $DEVMODE ] && ([ $status -eq 1 ] || ([ -n "$LOGIN" ] && [ $status -lt 2 ])) \
-    && echo "You are now logged out. Node running in the background." && exit 0
-  stop_container && echo "Clean exit with status: $status" && exit 0
+  [ -n "$HEADLESS" ] || [ "$status" -eq 10 ] && exit
+  [ $status -eq 11 ] && echo "You are now logged out. Node running in the background." && exit
+  stop_container && echo "Exiting workbench with status: $status" && exit
 }
 
 ###############################################################################
@@ -272,8 +276,9 @@ set -E && trap cleanup EXIT
 ## Parse arguments.
 for arg in "$@"; do
   case $arg in
-    login)             LOGIN=1;   login_container $2;    exit   ;;
-    compile)           EXT=1;     check_binaries;        exit   ;;
+    build)             build_image $2;                   exit 10;;
+    rebuild)           remove_image $2; build_image $2;  exit 10;;
+    login)             login_container $2;               exit 11;;
     start)             TAG=$2                            shift 2;;
     spawn)             spawn_nodes $2;                   exit   ;;
     -h|--help)         usage;                            exit   ;;
@@ -281,8 +286,8 @@ for arg in "$@"; do
     -r|--rebuild)      REBUILD=1;                        shift  ;;
     -w|--wipe)         WIPE=1;                           shift  ;;
     -i|--devmode)      DEVMODE=1;                        shift  ;;
-    -v|--verbose)      VERBOSE=1;                        shift  ;;
-    -H|--headless)     HEADLESS=1;                       shift  ;;
+    -v|--verbose)      VERBOSE=1; LINE_OUT="/dev/tty";   shift  ;;
+    -H|--headless)     HEADLESS=1; HEADMODE="";          shift  ;;
     -T|--passthru)     PASSTHRU=$2;                      shift 2;;                      
     -D|--domain)       DOMAIN=$2;                        shift 2;;
     -M|--mount)        add_mount $2;                     shift 2;;
@@ -295,7 +300,7 @@ for arg in "$@"; do
     -r|--rest)         add_arg "REST_NODE=1";            shift  ;;
     -t|--tor)          add_arg "TOR_NODE=1";             shift  ;;
     -l|--local)        add_arg "LOCAL_ONLY=1";           shift  ;;
-    --spawn-conf)      SPAWNCONF=$2;                     shift 2;;
+    --spawn-conf)      SPAWN_CONF=$2;                    shift 2;;
     --no-kill)         NOKILL=1;                         shift  ;;           
   esac
 done
@@ -306,8 +311,6 @@ done
 
 ## Set default variables and flags.
 [ -z "$DOMAIN" ]   && DOMAIN="$DEFAULT_DOMAIN"
-[ -n "$VERBOSE" ]  && LINE_OUT="/dev/tty"
-[ -n "$HEADLESS" ] && HEADMODE=""
 [ -e "$ENV_PATH" ] && ENV_STR=`read_env $ENV_PATH`
 
 ## Define naming scheme.
