@@ -9,6 +9,14 @@ MESSAGE_TYPE = '0xF1FB'
 THRESHOLD = 2
 
 
+@plugin.method("autoinvoice")
+def auto_invoice(peer_id, amount):
+  """Auto-invoice a specified peer."""
+  bolt11 = generate_invoice(amount, peer_id)
+  send_invoice(peer_id, bolt11)
+  return f"Invoice sent to peer for {amount} msats."
+
+
 @plugin.subscribe("channel_opened")
 def on_channel_opened(plugin, channel_opened, **kwargs):
   """Capture channel open event and add collect info about peer."""
@@ -32,27 +40,14 @@ def on_channel_state_changed(plugin, channel_state_changed, **kwargs):
     send_invoice(peerId, invoice)
     
 
-def generate_invoice(amount, peer, label='autopay'):
+def generate_invoice(amount, peer, desc='autopay'):
   """Generate an invoice for peer."""
-  rand_id = str(random.randint(0, 2**64))
-  invoice = plugin.rpc.call('invoice', [ amount, rand_id, label ])
+  label = str(random.randint(0, 2**64))
+  invoice = plugin.rpc.call('invoice', [ amount, label, desc ])
   plugin.log(f"Generated {label} invoice for {amount} msats.")
   return invoice['bolt11']
 
 
-# @plugin.method("autobalance")
-# def auto_balance(peer_id):
-#   peer    = plugin.rpc.call('listpeers', [peer_id])['peers'][0]
-#   channel = peer['channels'][0]
-#   spend   = int(channel['spendable_msatoshi'])
-#   recv    = int(channel['receivable_msatoshi'])
-#   if not spend:
-#     return
-#   elif not recv:
-#     amount = spend // 2
-
-
-@plugin.method("autoinvoice")
 def send_invoice(peer_id, bolt11):
   """Send an invoice to peer."""
   msgtype = int(MESSAGE_TYPE, 16)
