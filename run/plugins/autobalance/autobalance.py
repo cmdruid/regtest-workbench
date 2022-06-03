@@ -10,9 +10,9 @@ THRESHOLD = 2
 
 
 @plugin.method("autoinvoice")
-def auto_invoice(peer_id, amount):
+def auto_invoice(peer_id, amount, desc='autopay'):
   """Auto-invoice a specified peer."""
-  bolt11 = generate_invoice(amount, peer_id)
+  bolt11 = generate_invoice(amount, peer_id, desc)
   send_invoice(peer_id, bolt11)
   return f"Invoice sent to peer for {amount} msats."
 
