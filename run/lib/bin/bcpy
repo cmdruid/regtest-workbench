@@ -33,6 +33,9 @@ def bcli(cmd, args='', rawFormat=False):
 def getinfo():
   return bcli("-getinfo", '', True)
 
+def getbalance(digits=2):
+  return format(float(bcli("getbalance")), f'.{digits}f')
+
 
 def print_result(result):
   if result is None:
