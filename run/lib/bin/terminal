@@ -33,7 +33,7 @@ stats() {
   [ -n "$bd_pid" ] && blk_str="blocks: $(bitcoin-cli getblockcount)"
   [ -n "$bd_pid" ] && peer_str="$IND peers: $(bitcoin-cli getconnectioncount)"
   [ -n "$bd_pid" ] && wall_str="$IND wallet: $(bcpy getbalance) btc"
-  [ -n "$bd_pid" ] && fund_str="$IND funds: $(lnpy getbalance) sats"
+  [ -n "$ld_pid" ] && fund_str="$IND funds: $(lnpy getbalance) sats"
   [ -n "$ld_pid" ] && chan_str="$IND channels: $(lightning-cli getinfo | jgrep num_active_channels)"
 
   printf "$bd_str$IND $ld_str$rm_str$tor_str\n$blk_str$peer_str$chan_str$wall_str$fund_str\n\n"
