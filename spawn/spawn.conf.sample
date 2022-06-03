@@ -1,6 +1,5 @@
-## Sample config for spawning multiple nodes.
-start master --miner=0,10,0 -w
-start alice --miner -p master -w
-start bob -f master -c alice -w
-start carol -f master -c alice -w
+## Sample configuration for spawning multiple nodes.
+--wipe start master --miner
+--wipe start alice --faucet master --ports 9737
+--wipe start bob --faucet master --channels alice
 ## EOF
