@@ -69,8 +69,6 @@ def check_plugins(watchpath):
 def restart_plugin(pname, fpath):
   """Attempt to start/restart the plugin using LightningRpc."""
   try:
-    #plugin.rpc.call('plugin', { 'subcommand': 'stop', 'plugin': fpath })
-    #sleep(1)
     plugin.rpc.call('plugin', { 'subcommand': 'start', 'plugin': fpath })
   except RpcError as err:
     print(f"Plugin '{pname}' failed to execute: {err.error}")
