@@ -14,4 +14,5 @@ node_modules
 /TODO*
 sample-compose.yml
 .env
-spawn.conf
+/spawn/*
+!spawn.conf.sample
