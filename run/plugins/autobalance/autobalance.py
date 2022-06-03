@@ -6,6 +6,7 @@ plugin = Plugin()
 
 ## Unique header bytes for our messages.
 MESSAGE_TYPE = '0xF1FB'
+THRESHOLD = 2
 
 
 @plugin.subscribe("channel_opened")
@@ -33,10 +34,22 @@ def on_channel_state_changed(plugin, channel_state_changed, **kwargs):
 
 def generate_invoice(amount, peer, label='autopay'):
   """Generate an invoice for peer."""
-  rand_id = random.randint(0, 2**64)
-  invoice = plugin.rpc.call('invoice', [ amount, peer, rand_id, label ])
+  rand_id = str(random.randint(0, 2**64))
+  invoice = plugin.rpc.call('invoice', [ amount, rand_id, label ])
   plugin.log(f"Generated {label} invoice for {amount} msats.")
   return invoice['bolt11']
+
+
+# @plugin.method("autobalance")
+# def auto_balance(peer_id):
+#   peer    = plugin.rpc.call('listpeers', [peer_id])['peers'][0]
+#   channel = peer['channels'][0]
+#   spend   = int(channel['spendable_msatoshi'])
+#   recv    = int(channel['receivable_msatoshi'])
+#   if not spend:
+#     return
+#   elif not recv:
+#     amount = spend // 2
 
 
 @plugin.method("autoinvoice")
