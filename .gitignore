@@ -1,7 +1,7 @@
-node_modules
-/contrib/examples/.*
-/doc
 /build/out/*
+/doc
+/contrib/examples/.*
+/local
 /run/bin/.*
 /run/config/.*
 /run/lib/.*
@@ -10,9 +10,9 @@ node_modules
 /run/lib/nodelib/*
 /run/startup/*.skip
 /run/plugins/.*
-/share
-/TODO*
-sample-compose.yml
-.env
 /spawn/*
 !spawn.conf.sample
+/share
+/TODO*
+.env
+node_modules
