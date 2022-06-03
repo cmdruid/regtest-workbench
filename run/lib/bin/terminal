@@ -21,7 +21,7 @@ stats() {
   ld_str="lightningd: $ld_st"
 
   if [ -n "$MINE_NODE" ]; then 
-    rm_pid=`pgrep regminer`; [ -n "$rm_pid" ] && rm_st=`templ hlight $rm_pid` || rm_st=`fgc 160 FAIL`
+    rm_pid=`regminer --check`; [ -n "$rm_pid" ] && rm_st=`templ hlight $rm_pid` || rm_st=`fgc 160 FAIL`
     rm_str="$IND regminer: $rm_st"
   fi
 
