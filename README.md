@@ -160,7 +160,12 @@ All suggestions and contributions are welcome! If you have any questions about t
 
 ## Tools
 
-**LNURL Decoder**  
+**Bitcoin Core Config Generator**  
+Covers the myriad of options available for bitcoin.conf.  
+https://jlopp.github.io/bitcoin-core-config-generator
+
+**LNURL Decoder**
+Decode lnurl strings.    
 https://lnurl.fiatjaf.com/codec
 
 ## Resources
@@ -180,6 +185,10 @@ https://lightning.readthedocs.io
 **Core Lighting REST API Docs**  
 Documentation for the REST interface that is provided by the RTL team.  
 https://github.com/Ride-The-Lightning/c-lightning-REST#apis
+
+**LNURL Specification**  
+Documentation that details the LNURL specification.  
+https://github.com/fiatjaf/lnurl-rfc
 
 **Bolt 12 Landing Page**  
 A nice landing page for info regarding the Bolt 12 specification.  

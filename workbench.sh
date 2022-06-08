@@ -5,14 +5,14 @@
 # Environment
 ###############################################################################
 
-DEFAULT_DOMAIN="regtest"  
-     
+DEFAULT_CHAIN="regtest"
+ 
 DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
 ESC_KEYS="ctrl-z"       ## Escape sequence for detaching from terminals.
 HEADMODE="-i"           ## Container connects to terminal by default.
-SPAWN_DELAY=3           ## Delay (in seconds) to wait between spawning nodes.
+SPAWN_DELAY=2           ## Delay (in seconds) to wait between spawning nodes.
 
 DATAPATH="data"         ## Default path for a node's interal storage.
 SHAREPATH="share"       ## Default path to publish connection info.
@@ -128,6 +128,14 @@ add_ports() {
   done; fi
 }
 
+add_list() {
+  [ -z "$1" ] || [ -z "$2" ] && return
+  [ "$2" = "all" ] \
+    && add_arg "$1=$(find $SHAREPATH -mindepth 1 -maxdepth 1 -type d  -printf '%f,')" \
+    && return
+  add_arg "$1=$2" && return
+}
+
 read_env() {
   ## Read a key=value store and convert into a string.
   [ -n "$1" ] && \
@@ -227,7 +235,7 @@ spawn_nodes() {
   printf "Spawning $DOMAIN network:\n"
   cat $conf | while read line; do
     [ -n "$(echo $line | grep -E '^ *#')" ] && continue  ## Ignore commented lines.
-    printf "Starting node: $line"
+    printf "Starting node: $line\n"
     NOKILL=$NOKILL ./workbench.sh $line --domain $DOMAIN --headless && sleep $SPAWN_DELAY
   done
 }
@@ -263,7 +271,8 @@ main() {
     --network $NET_NAME \
     --mount type=bind,source=$WORKPATH/$SHAREPATH,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
-    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" -e ESC_KEYS="$ESC_KEYS" \
+    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" \
+    -e ESC_KEYS="$ESC_KEYS" -e BLOCKCHAIN="$BLOCKCHAIN" \
   $HEADMODE $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $PASSTHRU $IMG_NAME:latest
 }
 
@@ -285,15 +294,17 @@ for arg in "$@"; do
     -b|--build)        BUILD=1;                          shift  ;;
     -r|--rebuild)      REBUILD=1;                        shift  ;;
     -w|--wipe)         WIPE=1;                           shift  ;;
-    -i|--devmode)      DEVMODE=1;                        shift  ;;
+    -d|--devmode)      DEVMODE=1;                        shift  ;;
     -v|--verbose)      VERBOSE=1; LINE_OUT="/dev/tty";   shift  ;;
     -H|--headless)     HEADLESS=1; HEADMODE="";          shift  ;;
     -T|--passthru)     PASSTHRU=$2;                      shift 2;;                      
     -D|--domain)       DOMAIN=$2;                        shift 2;;
+    -n|--chain)        BLOCKCHAIN=$2;                    shift 2;;
+    -i|--image)        IMG_NAME=$2;                      shift 2;;
     -M|--mount)        add_mount $2;                     shift 2;;
     -P|--ports)        add_ports $2;                     shift 2;;
-    -p|--peers)        add_arg "PEER_LIST=$2";           shift 2;;
-    -c|--channels)     add_arg "CHAN_LIST=$2";           shift 2;;
+    -p|--peers)        add_list "PEER_LIST" $2;          shift 2;;
+    -c|--channels)     add_list "CHAN_LIST" $2;          shift 2;;
     -f|--faucet)       add_arg "USE_FAUCET=$2";          shift 2;;
     -m|--miner)        add_arg "MINE_NODE=DEFAULT";      shift  ;;
     -m=*|--miner=*)    add_arg "MINE_NODE=${arg#*=}";    shift  ;;
@@ -310,11 +321,12 @@ done
 [ -z "$TAG" ] && [ -n "$1" ] && TAG=$1
 
 ## Set default variables and flags.
-[ -z "$DOMAIN" ]   && DOMAIN="$DEFAULT_DOMAIN"
-[ -e "$ENV_PATH" ] && ENV_STR=`read_env $ENV_PATH`
+[ -z "$BLOCKCHAIN" ] && BLOCKCHAIN="$DEFAULT_CHAIN"
+[ -z "$DOMAIN" ]     && DOMAIN="$BLOCKCHAIN"
+[ -z "$IMG_NAME" ]   && IMG_NAME="$DOMAIN-img"
+[ -e "$ENV_PATH" ]   && ENV_STR=`read_env $ENV_PATH`
 
 ## Define naming scheme.
-IMG_NAME="$DOMAIN-img"
 NET_NAME="$DOMAIN-net"
 SRV_NAME="$TAG.$DOMAIN.node"
 DAT_NAME="$TAG.$DOMAIN.data"
