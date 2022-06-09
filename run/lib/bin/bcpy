@@ -33,8 +33,13 @@ def bcli(cmd, args='', rawFormat=False):
 def getinfo():
   return bcli("-getinfo", '', True)
 
+
 def getbalance(digits=2):
   return format(float(bcli("getbalance")), f'.{digits}f')
+
+
+def is_new_chain():
+  return 1 if int(bcli('getblockchaininfo')['chainwork']) > 2 else 0
 
 
 def print_result(result):

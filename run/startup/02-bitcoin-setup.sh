@@ -25,7 +25,7 @@ DEFAULT_WALLET="Master"
 DEFAULT_LABEL="Coinbase"
 DEFAULT_MIN_FEE=0.00001
 
-DEFAULT_PEER_TIMEOUT=10
+DEFAULT_PEER_TIMEOUT=20
 DEFAULT_TOR_TIMEOUT=20
 
 DEFAULT_MIN_BLOCKS=150
@@ -40,7 +40,7 @@ incomplete_chain() {
 }
 
 new_blockchain() {
-  chainwork=`bitcoin-cli getblockchaininfo | jgrep chainwork` && [ "$((chainwork + 0))" -lt 3 ]
+  [ "$(bcpy is_new_chain)" -eq 0 ]
 }
 
 ###############################################################################
@@ -144,9 +144,9 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ] ); then
     if ! is_peer_configured $peer_host; then
       printf "\n$IND Adding node: $(prevstr -l 20 $peer_host)"
       bitcoin-cli addnode "$peer_host" add
-      printf "\n$IND Connecting to node "
     fi
     
+    printf "\n$IND Connecting to peer"
     ( ## Start a process to connect to peer (with a timeout).
       while ! is_peer_connected $peer_host; do 
         sleep 1 && printf "."; 
@@ -154,7 +154,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] || [ -n "$USE_FAUCET" ] ); then
     ) & timeout_child $CONN_TIMEOUT
     
     ## Check if we connected or timed out.
-    ( [ $? -eq 0 ] && templ conn ) || templ tout
+    is_peer_connected && templ conn || templ tout
 
   done
 
@@ -173,17 +173,21 @@ if incomplete_chain; then
   if ! new_blockchain; then
     ## Previous chain exists on disk.
     printf "$(templ hlight 'CONNECTING' 255 220)"
-    if get_peer_count; then
+    if is_peer_connected; then
       ## Connected to existing peers on the network.
       printf "\n$IND Waiting (up to ${BLOCK_TIMEOUT}s) for blockchain to sync with peers ."
-      ( while get_ibd_state; do sleep 2 && printf "."; done ) & timeout_child $BLOCK_TIMEOUT
-      if incomplete_chain; then printf "timed out!" && templ skip && exit 2; else templ ok; fi
+      ( 
+        while incomplete_chain; do 
+          sleep 2 && printf "."
+        done
+      ) & timeout_child $BLOCK_TIMEOUT
+      if incomplete_chain; then printf "\n$IND timed out!" && templ skip && exit 2; else templ ok; fi
     elif [ -n "$PEER_LIST" ]; then
       ## Unable to connect to any peers.
       printf "\n$IND Failed to connect to any peers!" && templ fail && exit 1
     else
       ## No peers are available to sync.
-      printf "\n$IND No peers available to connect!" && templ skip
+      printf "\n$IND No peers available to connect!" && templ fail
     fi
   elif [ -n "$MINE_NODE" ]; then
     ## Check how many blocks we need to initialize the chain.

@@ -46,8 +46,17 @@ def getpeerlist():
   return [ peer["id"] for peer in getpeers() ]
 
 
+def getconnectioncount():
+  return len([ peer for peer in getpeers() if peer["connected"] ])
+
+
 def getconnectedpeers():
   return [ peer["id"] for peer in getpeers() if peer["connected"] ]
+
+
+def is_peer_connected(id):
+  is_connected = next((x for x in getpeers() if x["id"] in id and x["connected"]), None)
+  return 1 if is_connected else 0
 
 
 def getchannels():

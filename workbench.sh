@@ -153,7 +153,7 @@ container_exists() {
 }
 
 volume_exists() {
-  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1
+  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1ain
 }
 
 network_exists() {
@@ -186,7 +186,7 @@ remove_image() {
 build_image() {
   check_binaries
   [ -n "$1" ] && IMG_NAME="$1"
-  [ -n "$IMG_NAME" ] || IMG_NAME="$DEFAULT_DOMAIN-img"
+  [ -n "$IMG_NAME" ] || IMG_NAME="$DEFAULT_CHAIN-img"
   printf "Building image for $IMG_NAME from dockerfile ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
@@ -219,14 +219,14 @@ stop_container() {
     if [ -n "$VERBOSE" ]; then printf "\n"; fi
     docker container stop $SRV_NAME > $LINE_OUT 2>&1
     docker container rm $SRV_NAME > $LINE_OUT 2>&1
-    if container_exists; then printf "failed!\n" && exit 1; fi
+    # if container_exists; then printf "failed!\n" && exit 1; fi
     printf "done.\n"
   fi
 }
 
 spawn_nodes() {
   ## Set defaults.
-  [ -n "$DOMAIN" ] || DOMAIN="$DEFAULT_DOMAIN"
+  [ -n "$DOMAIN" ] || DOMAIN="$DEFAULT_CHAIN"
   [ -n "$1" ] && conf="$WORKPATH/spawn/$1.conf" || conf="$WORKPATH/spawn/spawn.conf"
   ## Check spawn config file exists.
   [ -e "$conf" ] || ( echo "Spawn config file not found!" && exit )
@@ -252,7 +252,7 @@ cleanup() {
   ## Exit codes are complicated.
   status="$?"
   [ -n "$HEADLESS" ] || [ "$status" -eq 10 ] && exit
-  [ $status -eq 11 ] && echo "You are now logged out. Node running in the background." && exit
+  ( [ $status -eq 11 ] || [ $status -eq 1 ] ) && echo "You are now logged out. Node running in the background." && exit
   stop_container && echo "Exiting workbench with status: $status" && exit
 }
 
@@ -336,7 +336,7 @@ echo $WORKPATH > /dev/null ## Silly work-around for a silly bug.
 if [ ! -d "$WORKPATH/$SHAREPATH" ]; then mkdir -p "$WORKPATH/$SHAREPATH"; fi
 
 ## If there's an existing container, remove it.
-if [ -n "$NOKILL" ] && container_exists; then
+if container_exists && [ -n "$NOKILL" ]; then
   echo "Container already running for $SRV_NAME, aborting!" && exit 0
 else stop_container; fi
 
@@ -350,7 +350,7 @@ if ! image_exists $IMG_NAME || [ -n "$BUILD" ]; then build_image; fi
 if ! network_exists; then create_network; fi
 
 ## Purge data volume if flagged for removal.
-if volume_exists && [ -n "$WIPE" ]; then wipe_data; fi
+[ -n "$WIPE" ] && volume_exists && wipe_data
 
 ## Set flags and run mode of container.
 if [ -n "$DEVMODE" ] && [ -z "$HEADLESS" ]; then
@@ -365,9 +365,9 @@ fi
 ## Call main container script based on run mode.
 echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
 if [ -n "$HEADLESS" ]; then
-  main
+  main & exit 11
 elif [ -n "$DEVMODE" ]; then
   echo "Enter the command 'node-start' to begin the node startup script:" && main
 else
-  cid=`main` && docker attach --detach-keys $ESC_KEYS $cid
+  cid=`main` && docker attach --detach-keys $ESC_KEYS $cid && exit 11
 fi

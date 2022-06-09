@@ -34,7 +34,7 @@ is_node_configured() {
 }
 
 is_node_connected() {
-  [ -n "$1" ] && [ -n "$(lnpy getconnectedpeers | grep $1)" ]
+  [ -n "$1" ] && [ "$(lnpy is_peer_connected $1)" -eq 1 ]
 }
 
 ###############################################################################
@@ -129,14 +129,14 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
     fi
 
     ## If valid peer, then connect to node.
-    if ! is_node_configured $node_id; then
+    if ! is_node_configured "$node_id"; then
       printf "\n$IND Adding node: $(prevstr $node_id)@$(prevstr -l 20 $peer_host)"
       lightning-cli connect "$node_id@$peer_host" > /dev/null 2>&1
       printf "\n$IND Connecting to node"
     fi
 
     ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child $CONN_TIMEOUT
-    ( [ $? -eq 0 ] && templ conn ) || templ tout
+    is_node_connected && templ conn || templ tout
 
   done
 fi
