@@ -4,8 +4,40 @@
 set -E
 
 ###############################################################################
+# Environment
+###############################################################################
+
+IND=`fgc 215 " |"`
+
+###############################################################################
 # Methods
 ###############################################################################
+
+stats() {
+
+  bd_pid=`pgrep bitcoind`; [ -n "$bd_pid" ] && bd_st=`templ hlight $bd_pid` || bd_st=`fgc 160 FAIL`
+  bd_str="bitcoind: $bd_st"
+  ld_pid=`pgrep lightningd`; [ -n "$ld_pid" ] && ld_st=`templ hlight $ld_pid` || ld_st=`fgc 160 FAIL`
+  ld_str="lightningd: $ld_st"
+
+  if [ -n "$MINE_NODE" ]; then 
+    rm_pid=`regminer --check`; [ -n "$rm_pid" ] && rm_st=`templ hlight $rm_pid` || rm_st=`fgc 160 FAIL`
+    rm_str="$IND regminer: $rm_st"
+  fi
+
+  if [ -n "$TOR_NODE" ]; then
+    tor_pid=`pgrep tor`; [ -n "$tor_pid" ] && tor_st=`templ hlight $tor_pid` || tor_st=`fgc 160 FAIL`
+    tor_str="$IND tor: $tor_st"
+  fi
+
+  [ -n "$bd_pid" ] && blk_str="blocks: $(bitcoin-cli getblockcount)"
+  [ -n "$bd_pid" ] && peer_str="$IND peers: $(bitcoin-cli getconnectioncount)"
+  [ -n "$bd_pid" ] && wall_str="$IND wallet: $(bcpy getbalance) btc"
+  [ -n "$ld_pid" ] && fund_str="$IND funds: $(lnpy getbalance) sats"
+  [ -n "$ld_pid" ] && chan_str="$IND channels: $(lightning-cli getinfo | jgrep num_active_channels)"
+
+  printf "$bd_str$IND $ld_str$rm_str$tor_str\n$blk_str$peer_str$chan_str$wall_str$fund_str\n\n"
+}
 
 dev_greeting() {
   printf "Now running in developer mode. You can type '$(fgc 220 exit)' to quit this session and terminate the node.\n"
@@ -27,6 +59,8 @@ spark_pass=`cat /data/lightning/sparko.login | kgrep PASSWORD`
 stream_uri="stream?access-key=$(printf $spark_key | awk -F ':' '{ print $1 }')"
 
 templ banner "Welcome to the shell terminal for $HOSTNAME."
+
+stats
 
 printf "$(tput bold)Node ID:$(tput sgr0)      $(lightning-cli getinfo | jgrep id)
 $(tput bold)Stream Link:$(tput sgr0)  $(fgc 033 "http://$ip_addr:9737/$stream_uri")

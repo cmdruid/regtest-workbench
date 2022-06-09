@@ -89,5 +89,4 @@ plugin.add_option('hotload-state', 'disabled', f"Default state of plugin when li
 plugin.add_option('hotload-path', DEFAULT_PLUGPATH, f"Plugin path to check for file changes. Default is {DEFAULT_PLUGPATH} path.")
 plugin.add_option('hotload-interval', DEFAULT_INTERVAL, f"Interval to check for file changes. Default is {DEFAULT_INTERVAL} seconds.")
 
-
 plugin.run()

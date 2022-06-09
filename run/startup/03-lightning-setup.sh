@@ -30,11 +30,11 @@ get_peer_config() {
 }
 
 is_node_configured() {
-  [ -n "$1" ] && [ -n "$(pycli getpeerlist | grep $1)" ]
+  [ -n "$1" ] && [ -n "$(lnpy getpeerlist | grep $1)" ]
 }
 
 is_node_connected() {
-  [ -n "$1" ] && [ -n "$(pycli getconnectedpeers | grep $1)" ]
+  [ -n "$1" ] && [ "$(lnpy is_peer_connected $1)" -eq 1 ]
 }
 
 ###############################################################################
@@ -56,7 +56,7 @@ if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
 $LIBPATH/start/lightning/lightningd-start.sh
 
 ## Start CL-REST Server
-$LIBPATH/start/lightning/cl-rest-start.sh
+[ -n "$REST_NODE" ] && $LIBPATH/start/lightning/cl-rest-start.sh
 
 ###############################################################################
 # Payment Configuration
@@ -100,15 +100,17 @@ fi
 # Peer Connection
 ###############################################################################
 
-[ -z $PEER_TIMEOUT ]  && PEER_TIMEOUT=$DEFAULT_PEER_TIMEOUT
-[ -z $TOR_TIMEOUT ]   && TOR_TIMEOUT=$DEFAULT_TOR_TIMEOUT
+[ -z "$PEER_TIMEOUT" ] && PEER_TIMEOUT="$DEFAULT_PEER_TIMEOUT"
+[ -z "$TOR_TIMEOUT" ]  && TOR_TIMEOUT="$DEFAULT_TOR_TIMEOUT"
 
 [ -n "$(pgrep tor)" ] \
-  && CONN_TIMEOUT=$TOR_TIMEOUT \
-  || CONN_TIMEOUT=$PEER_TIMEOUT
+  && CONN_TIMEOUT="$TOR_TIMEOUT" \
+  || CONN_TIMEOUT="$PEER_TIMEOUT"
 
 if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
   for peer in $(printf $PEER_LIST $CHAN_LIST | tr ',' ' '); do
+
+    [ "$peer" = "$HOSTNAME" ] && continue
     
     ## Search for peer file in peers path.
     echo && printf "Checking connection to $peer:"
@@ -127,14 +129,14 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
     fi
 
     ## If valid peer, then connect to node.
-    if ! is_node_configured $node_id; then
+    if ! is_node_configured "$node_id"; then
       printf "\n$IND Adding node: $(prevstr $node_id)@$(prevstr -l 20 $peer_host)"
       lightning-cli connect "$node_id@$peer_host" > /dev/null 2>&1
       printf "\n$IND Connecting to node"
     fi
 
     ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child $CONN_TIMEOUT
-    ( [ $? -eq 0 ] && templ conn ) || templ tout
+    is_node_connected && templ conn || templ tout
 
   done
 fi

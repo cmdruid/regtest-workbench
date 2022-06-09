@@ -62,11 +62,11 @@ is_node_connected() {
 }
 
 is_channel_confirmed() {
-  [ -n "$1" ] && [ "$(pycli peerchannelcount "$1")" != "0" ]
+  [ -n "$1" ] && [ "$(lnpy peerchannelcount "$1")" != "0" ]
 }
 
 is_channel_funded() {
-  [ -n "$1" ] && [ "$(pycli peerchannelbalance "$1")" != "0" ]
+  [ -n "$1" ] && [ "$(lnpy peerchannelbalance "$1")" != "0" ]
 }
 
 ###############################################################################
@@ -190,10 +190,12 @@ if ! greater_than $cln_balance $MIN_FUNDS; then
     rounded_funds=`get_btc_balance | awk -F '.' '{ print $1}'`
     funds_amt="$((rounded_funds / FUND_SPLIT))"
     bitcoin-cli sendtoaddress $cln_address $funds_amt > /dev/null 2>&1
-    ## This is a hack to speed up lightning wallet settlment. 
-    ## sleep 1 && bitcoin-cli generatetoaddress 1 $cln_address > /dev/null 2>&1
+    ## This is a hack to speed up lightning wallet settlment.
+    [ -n "$MINE_NODE" ] \
+      && btc_address=`cat "$BTC_FUND_FILE" | kgrep ADDRESS` \
+      && sleep 2 && bitcoin-cli generatetoaddress 1 $btc_address > /dev/null 2>&1
     printf "$IND Waiting for funds to clear ."
-    while ! greater_than $(get_cln_balance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
+    while ! greater_than $(lnpy getbalance) $MIN_FUNDS; do sleep 1 && printf "."; done; templ ok
     printf "$IND New Lightning balance:" && templ brkt "$(get_cln_balance) BTC."
   fi
 else
@@ -204,6 +206,8 @@ fi
 if [ -n "$CHAN_LIST" ]; then
   sat_amt="$CHAN_DEPOSIT"
   for peer in $(printf $CHAN_LIST | tr ',' ' '); do
+
+    [ "$peer" = "$HOSTNAME" ] && continue
 
     ## Search for peer file in peers path.
     echo && printf "Checking channel with $peer:\n"
@@ -224,7 +228,7 @@ if [ -n "$CHAN_LIST" ]; then
         lightning-cli fundchannel id=$node_id amount=$sat_amt minconf=0 > /dev/null 2>&1
         while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
       fi
-      printf "$IND Channel balance:"; templ brkt "$(pycli peerchannelbalance $node_id)"
+      printf "$IND Channel balance:"; templ brkt "$(lnpy peerchannelbalance $node_id)"
     else
       printf "$IND No connection to $peer!" && templ fail
     fi

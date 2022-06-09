@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+## Extention of bitcoin-cli interface.
+
+from shlex    import split
+from shutil   import which
+from argparse import ArgumentParser
+
+import subprocess
+import json
+
+CLI = "bitcoin-cli"
+VERBOSE = False
+
+
+def bcli(cmd, args='', rawFormat=False):
+  if which(CLI) is None:
+    ## If binary does not exist, raise exception.
+    raise Exception(f"{CLI} not found! Check if it is installed in your PATH.")
+
+  arglist = split(f"{CLI} {cmd} {args}")
+  process = subprocess.run(arglist, capture_output=True)
+
+  if process.returncode != 0:
+    ## If return code not 0, raise an exception.
+    errStr = f"{process.stderr.decode('utf8')}"
+    stdStr = json.dumps(json.loads(process.stdout.decode('utf8')), indent=2)
+    raise Exception(f"Error returned code {process.returncode}: {errStr}\n{stdStr}")
+  if rawFormat:
+    return process.stdout.decode('utf8')
+  return json.loads(process.stdout.decode('utf8'))
+
+
+def getinfo():
+  return bcli("-getinfo", '', True)
+
+
+def getbalance(digits=2):
+  return format(float(bcli("getbalance")), f'.{digits}f')
+
+
+def is_new_chain():
+  return 1 if int(bcli('getblockchaininfo')['chainwork']) > 2 else 0
+
+
+def print_result(result):
+  if result is None:
+    return  ## If result is None, return nothing.
+  elif type(result) is list: 
+    if len(result) < 1:
+      return  ## If list is empty, return nothing.
+    elif type(result[0]) is str:
+      print('\n'.join(result))  ## If list of strings, use shell-friendly format.
+    else:
+      print(json.dumps(result, indent=2))  ## Print formatted JSON.
+  elif type(result) is dict:
+    print(json.dumps(result, indent=2))  ## Print formatted JSON.
+  else:                           
+    print(result)
+  return
+
+
+def main():
+  parser = ArgumentParser(description=f"Extended {CLI} utility.")
+  parser.add_argument('command', type=str, help="Command to execute.")
+  parser.add_argument('arguments', type=str, nargs='*', help="Arguments to pass into command.")
+  parser.add_argument('-v', '--verbose', action='store_true', help="Use verbose output.")
+  args = parser.parse_args()
+
+  VERBOSE   = args.verbose
+  command   = args.command
+  arguments = args.arguments
+
+  if not arguments:
+    arguments=''
+
+  try:
+    if command not in globals():
+      ## If a command is does not exist, run it directly.
+      result = bcli(command, arguments)
+    elif arguments:
+      ## Call the named method with arguments.
+      result = globals()[command](*arguments)
+    else:
+      ## Call the named method without arguments.
+      result = globals()[command]()
+
+    print_result(result)
+
+  except Exception as e:
+    if VERBOSE:
+      raise e
+    else:
+      print(f"Error: {e}")
+
+if __name__ == "__main__":
+  main()

@@ -6,6 +6,15 @@ plugin = Plugin()
 
 ## Unique header bytes for our messages.
 MESSAGE_TYPE = '0xF1FB'
+THRESHOLD = 2
+
+
+@plugin.method("autoinvoice")
+def auto_invoice(peer_id, amount, desc='autopay'):
+  """Auto-invoice a specified peer."""
+  bolt11 = generate_invoice(amount, peer_id, desc)
+  send_invoice(peer_id, bolt11)
+  return f"Invoice sent to peer for {amount} msats."
 
 
 @plugin.subscribe("channel_opened")
@@ -31,13 +40,14 @@ def on_channel_state_changed(plugin, channel_state_changed, **kwargs):
     send_invoice(peerId, invoice)
     
 
-def generate_invoice(amount, peer):
+def generate_invoice(amount, peer, desc='autopay'):
   """Generate an invoice for peer."""
-  invoice = plugin.rpc.call('invoice', [ amount, peer, 'autobalance' ])
-  plugin.log(f"Generated auto-balance invoice for {amount} msats.")
+  label = str(random.randint(0, 2**64))
+  invoice = plugin.rpc.call('invoice', [ amount, label, desc ])
+  plugin.log(f"Generated {label} invoice for {amount} msats.")
   return invoice['bolt11']
 
-@plugin.method("autopay-invoice")
+
 def send_invoice(peer_id, bolt11):
   """Send an invoice to peer."""
   msgtype = int(MESSAGE_TYPE, 16)
@@ -47,27 +57,28 @@ def send_invoice(peer_id, bolt11):
             + bytes(bolt11, encoding='utf8'))
   plugin.log("Sending invoice to peer: {}".format(peer_id))
   plugin.rpc.call('sendcustommsg', {'node_id': peer_id, 'msg': msg.hex()})
+  return "Sent invoice to peer: {}".format(peer_id)
 
 
 def pay_invoice(bolt11):
   """Pay a BOLT11 invoice."""
-  plugin.rpc.call('pay', [ bolt11 ])
-  plugin.log(f'Paid auto-balance invoice for {msatoshi} msats.')
+  result = plugin.rpc.call('pay', [ bolt11 ])
+  plugin.log(f"Paid auto-balance invoice for {result['msatoshi']} msats.")
 
 
 @plugin.async_hook('custommsg')
-def on_custommsg(peer_id, payload, plugin, **kwargs):
+def on_custommsg(peer_id, payload, plugin, request, **kwargs):
   """Use custommsg hook to receive invoice requests."""
   pbytes  = bytes.fromhex(payload)
   mtype   = int.from_bytes(pbytes[:2], "big")
-  plugin.log('Received payload type: {}'.format(hex(mtype)))
   ## Check if message header matches our type.
   if hex(mtype) == MESSAGE_TYPE.lower():
     msgid   = int.from_bytes(pbytes[2:10], "big")
     data    = pbytes[10:].decode()
     plugin.log('Received invoice request from peer: {}'.format(peer_id))
     pay_invoice(data)
-  return {'result': 'continue'}
+    return
+  return request.set_result({'result': 'continue'})
 
 
 @plugin.init()

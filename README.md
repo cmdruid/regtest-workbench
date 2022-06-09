@@ -28,7 +28,7 @@ git clone "https://github.com/cmdruid/regtest-workbench.git"
 cd regtest-workbench
 
 ## Compiles all the binaries that we will need. May take a while!
-./workbench.sh compile
+./workbench.sh build
 
 ## Your first (and main) node. Seeds the blockchain and mines blocks.
 ./workbench.sh start master --miner
@@ -44,30 +44,34 @@ cd regtest-workbench
 
 ## ... repeat for as many nodes as you like!
 
-## A detailed guide is also built into the help screen.
+## You can also launch many nodes at once.
+./workbench.sh spawn
+
+## A detailed guide is built into the help screen.
 ./workbench.sh --help
 ```
-Based on the above configuration, each node will automatically connect to their designated peers, request funds from a faucet, and open payment channels. The `start` keyword designates your node with a name tag.
+The `start` keyword designates your node with a name tag. Each node will automatically connect to its designated peers, request funds from a faucet, open payment channels, and collectively balance those channels.
 
-Use the `--miner` flag with your first node in order to initiate the chain. Your miner will detect a new chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default starting height is 150.
+The `--peers` flag will instruct nodes on whom to peer with, and share transactions / blocks.
+The `--faucet` flag will instruct your node to peer and request funds from another node.
+The `--channels` flag will instruct your node to peer and open channels with another node.
+The `--peers` and `--channels` flags accept a comma-separated list of nametags (*e.x alice,bob,carol*).
+
+By default, nodes will request a balance of 10 BTC, and open channels with a balance of 5 million sats (split 50/50 between parties). You can modify these settings (and much more) by editing the `.env.sample` file at the root of this repo.
+
+Use the `--miner` flag with your first node in order to initiate the chain. Your miner will detect an empty chain, then auto-generate blocks up to a certain height. Block rewards require at least 100 blocks to mature, so the default starting height is 150.
 
 By default, Your miner is configured to watch the mempool, then auto-generate blocks when it sees an unconfirmed transaction. The default poll time is 2 seconds, so transactions should confirm quickly. If you wish to deploy multiple miners, use a different configuration that avoids chain splits.
 
 The format for configuring each miner is `--miner=poll-time,interval-time,fuzz-amount` in seconds. For example, the configuration `0,10,20` will disable polling, schedule a block every 10 seconds, plus a random value between 1 and 20 seconds.
 
-The `--peers` flag will instruct nodes on whom to peer with, and share transactions / blocks.
-The `--faucet` flag will instruct your node to peer and request funds from another node.
-The `--channels` flag will instruct your node to peer and open channels with another node.
-
-By default, nodes will request a balance of 10 BTC, and open channels with a balance of 5 million sats (split 50/50 between parties). You can modify these settings (and much more) by editing the `.env.sample` file at the root of this repo.
-
-The `--peers` and `--channels` flags accept a comma-separated list of nametags (*e.x alice,bob,carol*).  Nodes are smart enough to configure their own wallets, negotiate funding, and balance channels!
-
 > Tip: *Use your initial miner node as your main faucet, since the block rewards will have made him filthy rich! Miners may also generate more blocks in order to procure funds if their wallet balance is low.*
+
+Nodes with the `--rest` flag will provide a REST interface on port 3001 (provided by CL-REST). Include `--ports 3001` if you wish to connect to it locally.
 
 Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also configure a node's endpoints as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available (unless given the `--local` flag).
 
-All pertinent settings, keys and credentials for a node is namespaced and stored in the `/share` folder. Nodes will use this folder in order to peer and communicate with other nodes. The files for each node are refreshed when you restart that node, so feel free to muck with the settings on a frequent basis!
+All pertinent settings, keys and credentials for a node is namespaced and stored in the `/share` folder. Nodes will use this folder in order to peer and communicate with other nodes. The files for each node are refreshed when you restart that node, so configuration data will always be current.
 
 > Note: *Nodes are designed to work completely over tor, using the `/share` folder. You can copy / distribute a node's shared files onto other machines and build a regtest network across the web!*
 
@@ -89,7 +93,7 @@ All nodes ship with Flask and Nodejs included, plus a core library of developmen
 
 This path contains the build script, related dockerfiles, and compiled binaries. When you run the `workbench.sh` script, it will fist scan the `build/dockerfiles` and `build/out` path in order to compare files. If a binary appears to be missing, the start script will then call the build script (with the related dockerfile), and request to build the missing binary from source. Compiled binaries are then copied `build/out`.
 
-If you have just cloned this repositry, it's best to run `./workbench.sh compile` as a first step, so that launching your first node doesn't force you to compile everything at once.
+If you have just cloned this repositry, it's best to run `./workbench.sh build` as a first step, so that launching your first node doesn't force you to compile everything at once.
 
 All files located in `build/out` are copied over to the main docker image and installed at build time, so feel free to include any binaries you wish! The script recognizes tar.gz compression, and will strip the first folder before unpacking into `/usr`, so make sure to pack your files accordingly.
 
@@ -97,7 +101,7 @@ You can also add your own `build/dockerfiles`, or modify the existing ones in or
 
 ### \#\# ./config
 
-These are the configuration files used by the main services in the stack. The entire config folder is copied at build time, to `/root/config` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container.
+These are the configuration files used by the main services in the stack. The entire config folder is copied at build time, to `/root/config` in the image. Feel free to modify these files or add your own, then use commands `build` or `rebuild` to refresh the image.
 
 The `.bash_aliases` file is also loaded upon startup, feel free to use it to customize your environment!
 
@@ -116,10 +120,11 @@ This folder contains the main `entrypoint.sh` script, libraries and tools, plus 
 - Most of the source code for this project is located in `lib`.
 - Files in `lib\bin` are available in the container's PATH.
 - Files in `lib\pylib` are available in the container's PYPATH.
+- Files in `lib\nodelib` are available in the container's NODEPATH.
 - Files in `plugins` are loaded by lightningd at startup (*main script must match folder name*).
 - Scripts in `startup` are executed in alpha-numeric order when `node-start` is run.
 
-The entire run folder is copied at build time, located at `/root/run` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` to refresh the image when starting a container. When a container is started in `--devmode`, the `run` folder is mounted directly, and files are modified in real-time.
+The entire run folder is copied at build time, located at `/root/run` in the image. Feel free to modify these files or add your own, then use `--build` or `--rebuild` flags to refresh the image when restarting a node. When a node is started in `--devmode`, the `run` folder is mounted directly, and you can modify the source files in real-time.
 
 ### \#\# ./share
 
@@ -143,7 +148,7 @@ If you end up borking a node, use the `--wipe` flag at launch to erase the node'
 
 Both safe-mode and dev-mode can be augmented with `--headless` mode, which launches a node without connecting to it. You can still monitor nodes through a management service like **portainer**, or simply login to the node using `./workbench login *nametag*`.
 
-To mount folders into a node's environment, use the format `--mount local/path:/mount/path`. Paths can be relative or absolute.
+To mount folders into a node's environment, use the format `--mount local/path:/mount/path` for each folder you wish to mount. Paths can be relative or absolute.
 
 To open and forward ports from a node's environment, use the format `--ports int1:ext1,int2:ext2, ...`, with a comma to separate port declarations, and colon to separate internal:external ports.
 
@@ -155,7 +160,12 @@ All suggestions and contributions are welcome! If you have any questions about t
 
 ## Tools
 
-**LNURL Decoder**  
+**Bitcoin Core Config Generator**  
+Covers the myriad of options available for bitcoin.conf.  
+https://jlopp.github.io/bitcoin-core-config-generator
+
+**LNURL Decoder**
+Decode lnurl strings.    
 https://lnurl.fiatjaf.com/codec
 
 ## Resources
@@ -175,6 +185,10 @@ https://lightning.readthedocs.io
 **Core Lighting REST API Docs**  
 Documentation for the REST interface that is provided by the RTL team.  
 https://github.com/Ride-The-Lightning/c-lightning-REST#apis
+
+**LNURL Specification**  
+Documentation that details the LNURL specification.  
+https://github.com/fiatjaf/lnurl-rfc
 
 **Bolt 12 Landing Page**  
 A nice landing page for info regarding the Bolt 12 specification.  

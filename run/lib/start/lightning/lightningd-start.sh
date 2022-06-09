@@ -107,7 +107,7 @@ if [ -z "$DAEMON_PID" ]; then
     echo "$line" | grep "Server started with public key" > /dev/null 2>&1
     if [ $? = 0 ]; then
       printf "$IND Lightning daemon running on regtest network!"
-      templ ok && echo && exit 0
+      templ ok && exit 0
     fi
   done
 
