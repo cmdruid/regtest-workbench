@@ -6,7 +6,7 @@
 ###############################################################################
 
 DEFAULT_CHAIN="regtest"
- 
+
 DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
@@ -121,8 +121,8 @@ add_mount() {
 add_ports() {
   ## If ports are specified, build a port string.
   if chk_arg $1; then for port in `echo $1 | tr ',' ' '`; do
-    src=`printf $1 | awk -F ':' '{ print $1 }'`
-    dest=`printf $1 | awk -F ':' '{ print $2 }'`
+    src=`printf $port | awk -F ':' '{ print $1 }'`
+    dest=`printf $port | awk -F ':' '{ print $2 }'`
     if [ -z "$dest" ]; then dest="$src"; fi
     PORTS="$PORTS -p $src:$dest"
   done; fi
@@ -153,7 +153,7 @@ container_exists() {
 }
 
 volume_exists() {
-  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1ain
+  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1
 }
 
 network_exists() {
