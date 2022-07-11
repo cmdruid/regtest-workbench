@@ -3,7 +3,7 @@ FROM debian:bullseye-slim AS build-stage
 ARG BIN_NAME="clightning"
 
 ENV BUILD_TARGET="x86_64-pc-linux-gnu"
-ENV BUILD_BRANCH="v0.10.2"
+ENV BUILD_BRANCH="v0.11.2"
 
 ENV REPO_URL="https://github.com/ElementsProject/lightning.git"
 ENV REPO_DIR="lightning"
@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
   pkg-config python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext vim
 
 RUN pip3 install --upgrade pip
-RUN pip3 install poetry
+RUN pip3 install poetry mako mrkd mistune==0.8.4
 
 ## Download source from remote repository.
 RUN cd /root \
@@ -29,7 +29,7 @@ RUN cd /root \
 ## Configure, compile and build binaries from source.
 WORKDIR /root/$REPO_DIR
 
-RUN pip3 install -r requirements.lock
+RUN poetry install
 RUN ./configure --prefix=/root/bin/$TAR_NAME --enable-developer
 RUN make && make install
 
