@@ -1,5 +1,6 @@
 ## Sample configuration for spawning multiple nodes.
---wipe start master --miner
---wipe start alice --faucet master --ports 9737
---wipe start bob --faucet master --channels alice
+start master --wipe --miner
+start alice  --wipe --faucet master --channels carol --ports 9737
+start bob    --wipe --faucet master --channels alice
+start carol  --wipe --faucet master --channels bob
 ## EOF
