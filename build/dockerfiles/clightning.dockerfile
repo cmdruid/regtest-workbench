@@ -30,7 +30,7 @@ RUN cd /root \
 WORKDIR /root/$REPO_DIR
 
 RUN pip3 install -r requirements.lock
-RUN ./configure --prefix=/root/bin/$TAR_NAME
+RUN ./configure --prefix=/root/bin/$TAR_NAME --enable-developer
 RUN make && make install
 
 ## Prepare binary as tarball.
