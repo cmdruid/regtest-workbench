@@ -117,7 +117,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
     config=`get_peer_config $peer`
 
     ## Exit out if peer file is not found.
-    if [ ! -e "$config" ]; then templ fail && continue; fi
+    [ ! -e "$config" ] && templ fail && continue
 
     ## Parse current peering info.
     onion_host=`cat $config | kgrep ONION_NAME`
@@ -136,7 +136,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
     fi
 
     ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child $CONN_TIMEOUT
-    is_node_connected && templ conn || templ tout
+    is_node_connected $node_id && templ conn || templ tout
 
   done
 fi
