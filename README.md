@@ -109,10 +109,6 @@ The `.bash_aliases` file is also loaded upon startup, feel free to use it to cus
 
 *Work in progress. Will contain example templates and demos for building bitcoin / lightining connected apps.*
 
-### \#\# ./doc
-
-Documentation will be stored in this folder. More documentation coming soon!
-
 ### \#\# ./run
 
 This folder contains the main `entrypoint.sh` script, libraries and tools, plus all other scripts used to manage services in the stack.
