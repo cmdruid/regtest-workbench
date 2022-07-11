@@ -50,12 +50,12 @@ new_blockchain() {
 templ banner "Bitcoin Core Configuration"
 
 ## Configure default values.
-if [ -z "$FUND_WALLET" ]; then FUND_WALLET=$DEFAULT_WALLET; fi
-if [ -z "$FUND_LABEL" ];  then FUND_LABEL=$DEFAULT_LABEL; fi
-if [ -z "$MIN_FEE" ];     then MIN_FEE=$DEFAULT_MIN_FEE; fi
+[ -z "$FUND_WALLET" ] && FUND_WALLET=$DEFAULT_WALLET
+[ -z "$FUND_LABEL" ]  && FUND_LABEL=$DEFAULT_LABEL
+[ -z "$MIN_FEE" ]     && MIN_FEE=$DEFAULT_MIN_FEE
 
 ## Create any missing paths.
-if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
+[ ! -d "$DATA_PATH" ] && mkdir -p "$DATA_PATH"
 
 ## Start bitcoin daemon.
 $LIBPATH/start/bitcoin/bitcoind-start.sh
