@@ -5,7 +5,7 @@
 # Environment
 ###############################################################################
 
-DEFAULT_CHAIN="regtest"
+DEFAULT_DOMAIN="regtest"
 
 DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
@@ -271,8 +271,7 @@ main() {
     --network $NET_NAME \
     --mount type=bind,source=$WORKPATH/$SHAREPATH,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
-    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" \
-    -e ESC_KEYS="$ESC_KEYS" -e BLOCKCHAIN="$BLOCKCHAIN" \
+    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" -e ESC_KEYS="$ESC_KEYS" \
   $HEADMODE $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $PASSTHRU $IMG_NAME:latest
 }
 
@@ -299,7 +298,6 @@ for arg in "$@"; do
     -H|--headless)     HEADLESS=1; HEADMODE="";          shift  ;;
     -T|--passthru)     PASSTHRU=$2;                      shift 2;;                      
     -D|--domain)       DOMAIN=$2;                        shift 2;;
-    -n|--chain)        BLOCKCHAIN=$2;                    shift 2;;
     -i|--image)        IMG_NAME=$2;                      shift 2;;
     -M|--mount)        add_mount $2;                     shift 2;;
     -P|--ports)        add_ports $2;                     shift 2;;
@@ -321,10 +319,9 @@ done
 [ -z "$TAG" ] && [ -n "$1" ] && TAG=$1
 
 ## Set default variables and flags.
-[ -z "$BLOCKCHAIN" ] && BLOCKCHAIN="$DEFAULT_CHAIN"
-[ -z "$DOMAIN" ]     && DOMAIN="$BLOCKCHAIN"
-[ -z "$IMG_NAME" ]   && IMG_NAME="$DOMAIN-img"
-[ -e "$ENV_PATH" ]   && ENV_STR=`read_env $ENV_PATH`
+[ -z "$DOMAIN" ]   && DOMAIN="$DEFAULT_DOMAIN"
+[ -z "$IMG_NAME" ] && IMG_NAME="$DOMAIN-img"
+[ -e "$ENV_PATH" ] && ENV_STR=`read_env $ENV_PATH`
 
 ## Define naming scheme.
 NET_NAME="$DOMAIN-net"
