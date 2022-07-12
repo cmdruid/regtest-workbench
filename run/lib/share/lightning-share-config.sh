@@ -8,7 +8,7 @@
 ONION_FILE="/data/tor/services/cln/hostname"
 PEER_FILE="$SHAREPATH/$HOSTNAME/lightning-peer.conf"
 
-PEER_PORT=9735
+PEER_PORT=19846
 RPC_PORT=9737
 REST_PORT=3001
 
