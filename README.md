@@ -11,7 +11,7 @@ Also included in each node:
  - Fully automated opening and balancing of channels between nodes.
  - Automated loading and hot-loading of plugins for Core Lightning.
  - Multiple launch configurations: safe mode, dev mode, and headless mode.
- - Coming soon: transaction / invoice traffic generation, native websocket interface.
+ - Plugins for auto-pay and invoice traffic generation.
 
 Everything is configured out of the box. Simply open up a node port and connect your application. Prototype and deploy your next project with lightning speed!
 
@@ -108,10 +108,6 @@ The `.bash_aliases` file is also loaded upon startup, feel free to use it to cus
 ### \#\# ./contrib
 
 *Work in progress. Will contain example templates and demos for building bitcoin / lightining connected apps.*
-
-### \#\# ./doc
-
-Documentation will be stored in this folder. More documentation coming soon!
 
 ### \#\# ./run
 

@@ -39,7 +39,7 @@ HiddenServicePort 18444 127.0.0.1:18445               ## Bitcoin-Core Peer Servi
 ## C-Lighting Hidden Service
 HiddenServiceDir /data/tor/services/cln
 HiddenServiceVersion 3
-HiddenServicePort 9735 127.0.0.1:9735                 ## C-Lightning Peer Service
+HiddenServicePort 19846 127.0.0.1:19846               ## C-Lightning Peer Service
 HiddenServicePort 9737 127.0.0.1:9737                 ## C-Lightning RPC Service
 HiddenServicePort 3001 127.0.0.1:3001                 ## C-Lightning REST Service
 HiddenServicePort 4001 127.0.0.1:4001                 ## C-Lightning REST Docs

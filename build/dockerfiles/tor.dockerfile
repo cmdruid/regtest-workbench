@@ -2,7 +2,7 @@ FROM debian:bullseye-slim AS build-stage
 
 ARG BIN_NAME="tor"
 
-ENV BUILD_BRANCH="0.4.6.9"
+ENV BUILD_BRANCH="0.4.7.8"
 
 ENV REPO_URL="https://dist.torproject.org"
 ENV FILENAME="${BIN_NAME}-${BUILD_BRANCH}.tar.gz"
@@ -45,7 +45,7 @@ RUN curl -SLO "$REPO_URL/$FILENAME.sha256sum.asc"
 
 ## Verify integrity of files.
 RUN gpg --verify $FILENAME.sha256sum.asc $FILENAME.sha256sum
-RUN echo $(cat $FILENAME.sha256sum) $FILENAME | sha256sum -c -
+RUN echo $(cat $FILENAME.sha256sum) | sha256sum -c -
 
 ## Extract source code archive.
 RUN tar -xf $FILENAME

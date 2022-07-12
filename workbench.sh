@@ -5,8 +5,8 @@
 # Environment
 ###############################################################################
 
-DEFAULT_CHAIN="regtest"
- 
+DEFAULT_DOMAIN="regtest"
+
 DENVPATH=".env"         ## Path to your local .env file.
 WORKPATH="$(pwd)"       ## Absolute path to use for this directory.
 LINE_OUT="/dev/null"    ## Default output for noisy commands.
@@ -85,7 +85,7 @@ Example Flags:
   --mount app:/root/app     Declares a path to be mounted within the container. Paths can be relative 
                             or absolute.
 
-  --ports 9375,80:8080      Declare a list of ports to be forwarded from within the container. You can
+  --ports 9737,80:8080      Declare a list of ports to be forwarded from within the container. You can
                             also specify a different internal:external destination for each port.
 
 For more information, or if you want to report any bugs / issues, 
@@ -98,6 +98,7 @@ please visit the github page: https://github.com:cmdruid/regtest-workbench
 ###############################################################################
 
 chk_arg() {
+  ## Check if argument is passed a value, or another argument.
   ( [ -z "$1" ] || [ -n "$(echo $1 | grep -E '^-')" ] ) \
   && echo "Bad value! Received an argument instead: $1" && exit 1 \
   || return 0
@@ -109,7 +110,7 @@ add_arg() {
 }
 
 add_mount() {
-  ## If mount points are specified, build a mount string.
+  ## Build a parameter string for mounting a volume.
   if chk_arg $1; then
     src=`printf $1 | awk -F ':' '{ print $1 }'`
     dest=`printf $1 | awk -F ':' '{ print $2 }'`
@@ -119,19 +120,21 @@ add_mount() {
 }
 
 add_ports() {
-  ## If ports are specified, build a port string.
+  ## Build a parameter string for forwarding ports.
   if chk_arg $1; then for port in `echo $1 | tr ',' ' '`; do
-    src=`printf $1 | awk -F ':' '{ print $1 }'`
-    dest=`printf $1 | awk -F ':' '{ print $2 }'`
+    src=`printf $port | awk -F ':' '{ print $1 }'`
+    dest=`printf $port | awk -F ':' '{ print $2 }'`
     if [ -z "$dest" ]; then dest="$src"; fi
     PORTS="$PORTS -p $src:$dest"
   done; fi
 }
 
 add_list() {
+  ## Build a paramater string for specifying peers. 
   [ -z "$1" ] || [ -z "$2" ] && return
+  ## Create a list of peers from entries in the existing sharepath.
   [ "$2" = "all" ] \
-    && add_arg "$1=$(find $SHAREPATH -mindepth 1 -maxdepth 1 -type d  -printf '%f,')" \
+    && add_arg "$1=$(find $SHAREPATH -mindepth 1 -maxdepth 1 -type d -printf '%f,')" \
     && return
   add_arg "$1=$2" && return
 }
@@ -153,7 +156,7 @@ container_exists() {
 }
 
 volume_exists() {
-  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1ain
+  docker volume ls | grep $DAT_NAME > $LINE_OUT 2>&1
 }
 
 network_exists() {
@@ -161,6 +164,7 @@ network_exists() {
 }
 
 check_binaries() {
+  ## Check if a binary already exists for each available build dockerfile.
   if [ ! -d "build/out" ]; then mkdir -p build/out; fi
   for file in build/dockerfiles/*; do
     name="$(basename -s .dockerfile $file)"
@@ -173,6 +177,7 @@ check_binaries() {
 }
 
 remove_image() {
+  ## Remove an existing docker image.
   [ -n "$IMG_NAME" ] \
     || ( [ -n "$1" ] && IMG_NAME="$1" ) \
     || IMG_NAME="$DEFAULT_DOMAIN-img"
@@ -184,6 +189,7 @@ remove_image() {
 }
 
 build_image() {
+  ## Build a new docker image.
   check_binaries
   [ -n "$1" ] && IMG_NAME="$1"
   [ -n "$IMG_NAME" ] || IMG_NAME="$DEFAULT_CHAIN-img"
@@ -195,6 +201,7 @@ build_image() {
 }
 
 create_network() {
+  ## Create a new network interface.
   printf "Creating network $NET_NAME ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker network create $NET_NAME > $LINE_OUT 2>&1;
@@ -203,17 +210,20 @@ create_network() {
 }
 
 get_container_id() {
+  ## Get the identifier of a tagged container.
   [ -z "$1" ] && echo "You provided an empty search tag!" && exit 1
   docker container ls | grep $1 | awk '{ print $1 }' | head -n 2 | tail -n 1
 }
 
 login_container() {
+  ## Login to existing running container.
   cid=`get_container_id $1`
   [ -z "$cid" ] && echo "That node does not exist!" && exit 3
   docker exec -it --detach-keys $ESC_KEYS $cid terminal
 }
 
 stop_container() {
+  ## Stop, kill and remove a currently running container.
   if container_exists; then
     printf "Purging existing container ... "
     if [ -n "$VERBOSE" ]; then printf "\n"; fi
@@ -226,21 +236,22 @@ stop_container() {
 
 spawn_nodes() {
   ## Set defaults.
-  [ -n "$DOMAIN" ] || DOMAIN="$DEFAULT_CHAIN"
+  [ -z "$DOMAIN" ] && DOMAIN="$DEFAULT_DOMAIN"
   [ -n "$1" ] && conf="$WORKPATH/spawn/$1.conf" || conf="$WORKPATH/spawn/spawn.conf"
   ## Check spawn config file exists.
-  [ -e "$conf" ] || ( echo "Spawn config file not found!" && exit )
+  [ ! -e "$conf" ] && echo "Spawn config file not found!" && exit
   ## Run the spawn loop.
   build_image "$DOMAIN-img"
   printf "Spawning $DOMAIN network:\n"
   cat $conf | while read line; do
     [ -n "$(echo $line | grep -E '^ *#')" ] && continue  ## Ignore commented lines.
     printf "Starting node: $line\n"
-    NOKILL=$NOKILL ./workbench.sh $line --domain $DOMAIN --headless && sleep $SPAWN_DELAY
+    NOKILL=$NOKILL ./workbench.sh $line --domain $DOMAIN --headless
   done
 }
 
 wipe_data() {
+  ## Remove existing persistent data volume for container.
   printf "Purging existing data volume ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   docker volume rm $DAT_NAME > $LINE_OUT 2>&1
@@ -271,8 +282,7 @@ main() {
     --network $NET_NAME \
     --mount type=bind,source=$WORKPATH/$SHAREPATH,target=/$SHAREPATH \
     --mount type=volume,source=$DAT_NAME,target=/$DATAPATH \
-    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" \
-    -e ESC_KEYS="$ESC_KEYS" -e BLOCKCHAIN="$BLOCKCHAIN" \
+    -e DATAPATH="/$DATAPATH" -e SHAREPATH="/$SHAREPATH" -e ESC_KEYS="$ESC_KEYS" \
   $HEADMODE $RUN_FLAGS $MOUNTS $PORTS $ENV_STR $ARGS_STR $PASSTHRU $IMG_NAME:latest
 }
 
@@ -299,7 +309,6 @@ for arg in "$@"; do
     -H|--headless)     HEADLESS=1; HEADMODE="";          shift  ;;
     -T|--passthru)     PASSTHRU=$2;                      shift 2;;                      
     -D|--domain)       DOMAIN=$2;                        shift 2;;
-    -n|--chain)        BLOCKCHAIN=$2;                    shift 2;;
     -i|--image)        IMG_NAME=$2;                      shift 2;;
     -M|--mount)        add_mount $2;                     shift 2;;
     -P|--ports)        add_ports $2;                     shift 2;;
@@ -321,10 +330,9 @@ done
 [ -z "$TAG" ] && [ -n "$1" ] && TAG=$1
 
 ## Set default variables and flags.
-[ -z "$BLOCKCHAIN" ] && BLOCKCHAIN="$DEFAULT_CHAIN"
-[ -z "$DOMAIN" ]     && DOMAIN="$BLOCKCHAIN"
-[ -z "$IMG_NAME" ]   && IMG_NAME="$DOMAIN-img"
-[ -e "$ENV_PATH" ]   && ENV_STR=`read_env $ENV_PATH`
+[ -z "$DOMAIN" ]   && DOMAIN="$DEFAULT_DOMAIN"
+[ -z "$IMG_NAME" ] && IMG_NAME="$DOMAIN-img"
+[ -e "$ENV_PATH" ] && ENV_STR=`read_env $ENV_PATH`
 
 ## Define naming scheme.
 NET_NAME="$DOMAIN-net"
@@ -365,7 +373,7 @@ fi
 ## Call main container script based on run mode.
 echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
 if [ -n "$HEADLESS" ]; then
-  main & exit 11
+  main && sleep $SPAWN_DELAY
 elif [ -n "$DEVMODE" ]; then
   echo "Enter the command 'node-start' to begin the node startup script:" && main
 else

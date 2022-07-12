@@ -14,12 +14,14 @@ IND=`fgc 215 "|-"`
 ###############################################################################
 
 clean_exit() {
+  ## If exit code is non-zero, print fail message and clean up.
   status="$?"
   [ $status -ne 0 ] && ( printf "\nFailed with exit code $state"; templ fail )
   [ $status -ne 0 ] && [ -z "$DEVMODE" ] && cleanup || exit 0
 }
 
 cleanup() {
+  ## Delete share info before exiting.
   if [ -z "$DEVMODE" ]; then
     printf "Delisting $SHAREPATH/$HOSTNAME ... "
     rm -rf "$SHAREPATH/$HOSTNAME"

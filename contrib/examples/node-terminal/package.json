@@ -2,7 +2,7 @@
   "name": "node-dashboard",
   "author": "Christopher Scott",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "1.0",
   "type": "module",
   "scripts": {
     "start": "scripts/gencerts.sh; node -r dotenv/config --es-module-specifier-resolution=node --no-warnings app.js"

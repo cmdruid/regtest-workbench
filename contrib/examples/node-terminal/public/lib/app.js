@@ -75,7 +75,7 @@ function sendCommand(str) {
 
 function format(json) {
   /* Convert ugly json objects into pretty text. */
-  const text = JSON.stringify(json, null, 1)
+  let text = JSON.stringify(json, null, 1)
   if (text.startsWith('{')) text = text.slice(2, -2)
   return text
 }

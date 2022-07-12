@@ -18,6 +18,7 @@ PEER_FILE="$PEER_PATH/lightning-peer.conf"
 FUND_FILE="$DATA_PATH/fund.address"
 LOGS_FILE="$LOGS_PATH/lightningd.log"
 
+DEFAULT_PEER_PORT=19846
 DEFAULT_PEER_TIMEOUT=10
 DEFAULT_TOR_TIMEOUT=20
 
@@ -46,8 +47,8 @@ if [ -z "$(pgrep bitcoind)" ]; then echo "Bitcoind is not running!" && exit 1; f
 templ banner "Lightning Core Configuration"
 
 ## Create any missing paths.
-if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
-if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
+[ ! -d "$DATA_PATH" ] && mkdir -p "$DATA_PATH"
+[ ! -d "$LOGS_PATH" ] && mkdir -p "$LOGS_PATH"
 
 ## Clear logs.
 ##if [ -e "$LOGS_FILE" ]; then rm $LOGS_FILE && touch $LOGS_FILE; fi
@@ -100,8 +101,10 @@ fi
 # Peer Connection
 ###############################################################################
 
-[ -z "$PEER_TIMEOUT" ] && PEER_TIMEOUT="$DEFAULT_PEER_TIMEOUT"
-[ -z "$TOR_TIMEOUT" ]  && TOR_TIMEOUT="$DEFAULT_TOR_TIMEOUT"
+## Set defaults.
+[ -z "$CLN_PEER_PORT" ] && CLN_PEER_PORT=$DEFAULT_PEER_PORT
+[ -z "$PEER_TIMEOUT" ]  && PEER_TIMEOUT="$DEFAULT_PEER_TIMEOUT"
+[ -z "$TOR_TIMEOUT" ]   && TOR_TIMEOUT="$DEFAULT_TOR_TIMEOUT"
 
 [ -n "$(pgrep tor)" ] \
   && CONN_TIMEOUT="$TOR_TIMEOUT" \
@@ -117,7 +120,7 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
     config=`get_peer_config $peer`
 
     ## Exit out if peer file is not found.
-    if [ ! -e "$config" ]; then templ fail && continue; fi
+    [ ! -e "$config" ] && templ fail && continue
 
     ## Parse current peering info.
     onion_host=`cat $config | kgrep ONION_NAME`
@@ -130,13 +133,13 @@ if ( [ -n "$PEER_LIST" ] || [ -n "$CHAN_LIST" ] ); then
 
     ## If valid peer, then connect to node.
     if ! is_node_configured "$node_id"; then
-      printf "\n$IND Adding node: $(prevstr $node_id)@$(prevstr -l 20 $peer_host)"
-      lightning-cli connect "$node_id@$peer_host" > /dev/null 2>&1
+      printf "\n$IND Adding node: $(prevstr $node_id)@$(prevstr -l 20 $peer_host):$CLN_PEER_PORT"
+      lightning-cli connect "$node_id@$peer_host:$CLN_PEER_PORT" > /dev/null 2>&1
       printf "\n$IND Connecting to node"
     fi
 
     ( while ! is_node_connected $node_id; do sleep 1 && printf "."; done; ) & timeout_child $CONN_TIMEOUT
-    is_node_connected && templ conn || templ tout
+    is_node_connected $node_id && templ conn || templ tout
 
   done
 fi
