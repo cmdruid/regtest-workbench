@@ -11,7 +11,7 @@ COUNTER=0
 DEFAULT_POLLING=2
 
 LOG_FILE="/var/log/regminer.log"
-MAX_LOG_LINES=6
+MAX_LOG_LINES=10000
 
 ###############################################################################
 # Methods
