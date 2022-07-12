@@ -11,7 +11,7 @@ Also included in each node:
  - Fully automated opening and balancing of channels between nodes.
  - Automated loading and hot-loading of plugins for Core Lightning.
  - Multiple launch configurations: safe mode, dev mode, and headless mode.
- - Coming soon: transaction / invoice traffic generation, native websocket interface.
+ - Plugins for auto-pay and invoice traffic generation.
 
 Everything is configured out of the box. Simply open up a node port and connect your application. Prototype and deploy your next project with lightning speed!
 
