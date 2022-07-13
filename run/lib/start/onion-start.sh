@@ -9,11 +9,9 @@ set -E
 
 DATA_PATH="/data/tor"
 SERV_PATH="$DATA_PATH/services"
-CONF_PATH="/root/config/tor"
 COOK_PATH="/var/lib/tor"
 LOGS_PATH="/var/log/tor"
-
-CONF_FILE="$CONF_PATH/torrc"
+CONF_FILE="/etc/tor/torrc"
 
 ###############################################################################
 # Methods

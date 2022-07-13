@@ -49,3 +49,10 @@ experimental-offers
 plugin=/root/.lightning/plugins/sparko
 sparko-host=0.0.0.0
 sparko-port=9737
+
+# General
+plugin=/root/.lightning/plugins/peerswap/peerswap
+log-level=debug:plugin-peerswap
+peerswap-policy-path=/root/.lightning/plugins/peerswap/policy.conf
+peerswap-bitcoin-cookiefilepath=/data/bitcoin/regtest/.cookie
+peerswap-elementsd-enabled=false
