@@ -12,9 +12,6 @@ SRC_PATH="$LNPATH/plugins/cl-rest"
 CERT_PATH="/data/certs"
 CERT_LINK="$SRC_PATH/certs"
 
-CONF_NAME="cl-rest-config.json"
-CONF_FILE="$CONFPATH/cl-rest/$CONF_NAME"
-
 LOG_FILE="$LOGPATH/lightning/cl-rest.log"
 REST_FILE="cln-rest.conf"
 
@@ -47,12 +44,6 @@ if [ -z "$DAEMON_PID" ]; then
   if [ ! -d "$CERT_PATH" ]; then 
     printf "$IND Adding data directory for rest certificates.\n"
     mkdir -p $CERT_PATH
-  fi
-
-  ## Symlink configuration file to root of project.
-  if [ ! -e "$SRC_PATH/$CONF_NAME" ]; then
-    printf "$IND Linking configuration file.\n"
-    ln -s $CONF_FILE $SRC_PATH/$CONF_NAME
   fi
 
   ## Symlink the certificates for the REST API to persistent storage.
