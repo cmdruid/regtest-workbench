@@ -22,6 +22,9 @@ alias aliases='printf "Available Aliases:
     qrbtchost   Generate a QR code for the bitcoin onion hostname.
     qrclnhost   Generate a QR code for the lightning onion hostname.
     qrsparko    Generate a QR code for using sparko connect.
+
+  Tools
+    mineblocks  AMOUNT  Mine a certain number of blocks to your node.
 \n"'
 
 ## Short-hand for bitcoin / lightning CLI.
@@ -48,3 +51,9 @@ alias qrsparko='\
   HOST="$(cat /data/tor/services/cln/hostname)" \
   && CRED="$(cat /data/lightning/sparko.keys | kgrep MASTER_KEY)" \
   && printf "http://$HOST:9737?access-key=$CRED" | qrencode -m 2 -t "ANSIUTF8"'
+
+## Mine blocks easily.
+mineblocks() {
+  address=`cat /data/bitcoin/wallet.conf | kgrep ADDRESS`
+  bcli generatetoaddress $1 $address
+}
