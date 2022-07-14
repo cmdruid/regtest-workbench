@@ -58,11 +58,11 @@ RUN PLUGPATH="$CLNPATH/plugins" && mkdir -p $PLUGPATH && cd $PLUGPATH \
 #   && chown -R tor:tor /var/lib/tor /var/log/tor
 
 ## Copy configuration and run environment.
-COPY config $HOMEDIR/config/
+COPY config /
 COPY run $RUNPATH/
 
 ## Add bash aliases to .bashrc.
-RUN alias_file="~/config/.bash_aliases" \
+RUN alias_file="~/.bash_aliases" \
   && printf "if [ -e $alias_file ]; then . $alias_file; fi\n\n" >> $HOMEDIR/.bashrc
 
 ## Make sure scripts are executable.
@@ -78,7 +78,6 @@ ENV NODE_PATH="$LIBPATH/nodelib:$NODE_PATH"
 ENV RUNPATH="$RUNPATH"
 ENV LIBPATH="$LIBPATH"
 ENV LOGPATH="/var/log"
-ENV CONFPATH="$HOMEDIR/config"
 ENV ONIONPATH="/data/tor/services"
 
 ## Configure Core Lightning Environment

@@ -10,8 +10,6 @@ set -E
 BIN_NAME="bitcoind"
 
 DATA_PATH="/data/bitcoin"
-CONF_PATH="$HOME/config/bitcoin"
-LINK_PATH="$HOME/.bitcoin"
 LOGS_PATH="/var/log/bitcoin"
 
 CONF_FILE="$CONF_PATH/bitcoin.conf"
@@ -35,15 +33,7 @@ fprint() {
 
 ## Create any missing paths.
 if [ ! -d "$DATA_PATH" ]; then mkdir -p "$DATA_PATH"; fi
-if [ ! -d "$LINK_PATH" ]; then mkdir -p "$LINK_PATH"; fi
 if [ ! -d "$LOGS_PATH" ]; then mkdir -p "$LOGS_PATH"; fi
-
-## Make sure configuration file is linked.
-if [ ! -e "$LINK_FILE" ]; then
-  printf "Adding symlink for $LINK_FILE ..."
-  ln -s $CONF_FILE $LINK_FILE
-  templ ok
-fi
 
 if [ -z "$(which $BIN_NAME)" ]; then echo "Binary for $BIN_NAME is missing!" && exit 1; fi
 

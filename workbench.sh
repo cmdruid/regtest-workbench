@@ -192,7 +192,7 @@ build_image() {
   ## Build a new docker image.
   check_binaries
   [ -n "$1" ] && IMG_NAME="$1"
-  [ -n "$IMG_NAME" ] || IMG_NAME="$DEFAULT_CHAIN-img"
+  [ -z "$IMG_NAME" ] && IMG_NAME="$DEFAULT_DOMAIN-img"
   printf "Building image for $IMG_NAME from dockerfile ... "
   if [ -n "$VERBOSE" ]; then printf "\n"; fi
   DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
