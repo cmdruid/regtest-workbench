@@ -1,18 +1,18 @@
 FROM debian:bullseye-slim AS build-stage
 
-ARG BIN_NAME="clightning"
+ARG SRCPATH="src/clightning"
 
 ENV BUILD_TARGET="x86_64-pc-linux-gnu"
-ENV BUILD_BRANCH="v0.11.2"
+ENV BUILD_BRANCH="projects/splicening_sandbox"
 
-ENV REPO_URL="https://github.com/ElementsProject/lightning.git"
+ENV REPO_URL="
 ENV REPO_DIR="lightning"
 
 ENV PATH="/root/.local/bin:$PATH"
 ENV TAR_NAME="$BIN_NAME-$BUILD_BRANCH-$BUILD_TARGET"
 
 ## Prepare directories.
-RUN mkdir -p /root/bin && mkdir -p /root/out
+RUN mkdir -p /root/bin /root/out
 
 ## Install dependencies.
 RUN apt-get update && apt-get install -y \
@@ -30,12 +30,12 @@ RUN cd /root \
 WORKDIR /root/$REPO_DIR
 
 RUN poetry install
-RUN ./configure --prefix=/root/bin/$TAR_NAME --enable-developer
+
 RUN make && make install
 
-## Prepare binary as tarball.
-RUN ls /root/bin | grep $TAR_NAME
-RUN tar -czvf /root/out/$TAR_NAME.tar.gz -C /root/bin $TAR_NAME
+## Prepare binary as tarball
+RUN ./configure --prefix=out --enable-developer --enable-experimental-features
+RUN tar -czvf /root/out/clightning.tar.gz -C /root/bin clightning
 
 ## Extract binary archive.
 FROM scratch AS export-stage

@@ -226,9 +226,10 @@ if [ -n "$CHAN_LIST" ]; then
         printf "$IND Opening channel with $peer for $sat_amt sats.\n"
         printf "$IND Waiting for channel to confirm ."
         lightning-cli fundchannel id=$node_id amount=$sat_amt minconf=0 > /dev/null 2>&1
-        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; templ ok
+        while ! is_channel_funded $node_id > /dev/null 2>&1; do sleep 1.5 && printf "."; done; 
+        templ ok
       fi
-      printf "$IND Channel balance:"; templ brkt "$(lnpy peerchannelbalance $node_id)"
+      printf "$IND Channel balance:"; sleep 1 && templ brkt "$(lnpy peerchannelbalance $node_id)"
     else
       printf "$IND No connection to $peer!" && templ fail
     fi

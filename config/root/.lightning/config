@@ -39,6 +39,10 @@ log-file=/var/log/lightning/lightningd.log
 ## to avoid leaking information.
 #always-use-proxy=true
 
+## Developer features.
+dev-fast-gossip
+dev-bitcoind-poll=5
+
 ## Experimental features.
 large-channels
 experimental-dual-fund

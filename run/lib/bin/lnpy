@@ -125,6 +125,24 @@ def print_result(result):
     print(result)
   return
 
+# def splice_channel(peerId, amt):
+#   PSBT   = lcli('splice_init', peerId)["psbt"]
+#   FUNDS  = lcli('fundpsbt', f'{amt}sat')["psbt"]
+#   JOINED =
+
+# def join_pbsts(pbsts):
+#   arglist = split(f'bitcoin-cli joinpbsts "[\"{PSBT}\", \"{PSBT_FUNDS}\"]"')
+#   process = subprocess.run(arglist, capture_output=True)
+
+#   PSBT=`l1-cli splice_init $PEER_ID | jq -r .psbt`
+# PSBT_FUNDS=`l1-cli fundpsbt 100000sat slow 166 | jq -r .psbt`
+# PSBT=`bt-cli joinpsbts "[\"$PSBT\", \"$PSBT_FUNDS\"]"`
+# PSBT=`l1-cli splice_update $PEER_ID $PSBT | jq -r .psbt`
+# PSBT=`l1-cli splice_finalize $PEER_ID | jq -r .psbt`
+# PSBT=`l1-cli signpsbt -k psbt="$PSBT" | jq -r .signed_psbt`
+# # l1-cli splice_signed $PEER_ID $PSBT
+# TX=`l1-cli splice_signed $PEER_ID $PSBT | jq -r .tx`
+# bt-cli sendrawtransaction $TX
 
 def main():
   parser = ArgumentParser(description=f"Advanced {CLI} utility")

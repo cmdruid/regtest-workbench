@@ -8,10 +8,13 @@ ARG CLNPATH="$HOMEDIR/.lightning"
 ## Install dependencies.
 RUN apt-get update && apt-get install -y \
   curl git iproute2 jq libevent-dev libsodium-dev lsof man netcat \
-  openssl procps python3 python3-pip qrencode socat xxd neovim
+  openssl procps python3 python3-pip qrencode socat xxd neovim \
+  autoconf automake build-essential libtool libgmp-dev libsqlite3-dev \
+  pkg-config net-tools zlib1g-dev gettext
 
 ## Install python modules.
-RUN pip3 install Flask pyln-client
+RUN pip3 install --upgrade pip
+RUN pip3 install poetry mako mrkd mistune==0.8.4 Flask pyln-client
 
 ## Install Node.
 RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && apt-get install -y nodejs
@@ -51,12 +54,6 @@ RUN PLUGPATH="$CLNPATH/plugins" && mkdir -p $PLUGPATH && cd $PLUGPATH \
   && git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git cl-rest \
   && cd cl-rest && npm install
 
-## Configure user account for Tor.
-# RUN addgroup tor \
-#   && adduser --system --no-create-home tor \
-#   && adduser tor tor \
-#   && chown -R tor:tor /var/lib/tor /var/log/tor
-
 ## Copy configuration and run environment.
 COPY config /
 COPY run $RUNPATH/
@@ -69,7 +66,7 @@ RUN alias_file="~/.bash_aliases" \
 RUN for file in `grep -lr '#!/usr/bin/env' $RUNPATH`; do chmod +x $file; done
 
 ## Symlink entrypoint and login to PATH.
-RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/node-start
+RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/workbench
 
 ## Configure run environment.
 ENV PATH="$LIBPATH/bin:$HOMEDIR/.local/bin:$PATH"
@@ -85,6 +82,9 @@ ENV LNPATH="$HOMEDIR/.lightning"
 ENV PLUGPATH="$RUNPATH/plugins/"
 ENV LNRPCPATH="$LNPATH/regtest/lightning-rpc"
 
+WORKDIR /root/run/repo/clightning
+RUN poetry install
+
 WORKDIR $HOMEDIR
 
-ENTRYPOINT [ "node-start" ]
+ENTRYPOINT [ "workbench" ]
