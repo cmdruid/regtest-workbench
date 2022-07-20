@@ -178,13 +178,12 @@ check_binaries() {
 
 remove_image() {
   ## Remove an existing docker image.
-  [ -n "$IMG_NAME" ] \
-    || ( [ -n "$1" ] && IMG_NAME="$1" ) \
-    || IMG_NAME="$DEFAULT_DOMAIN-img"
+  [ -n "$1" ] && IMG_NAME="$1"
+  [ -z "$IMG_NAME" ] && IMG_NAME="$DEFAULT_DOMAIN-img"
   printf "Removing existing image ... "
-  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  [ -n "$VERBOSE" ] && printf "\n"
   docker image rm $IMG_NAME > $LINE_OUT 2>&1
-  if image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
+  image_exists $IMG_NAME && printf "failed!\n" && exit 1
   printf "done.\n"
 }
 
@@ -194,9 +193,9 @@ build_image() {
   [ -n "$1" ] && IMG_NAME="$1"
   [ -z "$IMG_NAME" ] && IMG_NAME="$DEFAULT_DOMAIN-img"
   printf "Building image for $IMG_NAME from dockerfile ... "
-  if [ -n "$VERBOSE" ]; then printf "\n"; fi
+  [ -n "$VERBOSE" ] && printf "\n"
   DOCKER_BUILDKIT=1 docker build --tag $IMG_NAME . > $LINE_OUT 2>&1
-  if ! image_exists $IMG_NAME; then printf "failed!\n" && exit 1; fi
+  ! image_exists $IMG_NAME && printf "failed!\n" && exit 1
   printf "done.\n"
 }
 
