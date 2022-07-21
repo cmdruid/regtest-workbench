@@ -88,3 +88,4 @@ RUN poetry install
 WORKDIR $HOMEDIR
 
 ENTRYPOINT [ "workbench" ]
+CMD [ "start" ]
