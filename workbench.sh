@@ -375,7 +375,7 @@ echo "Starting container for $SRV_NAME in $RUN_MODE mode ..."
 if [ -n "$HEADLESS" ]; then
   main && sleep $SPAWN_DELAY
 elif [ -n "$DEVMODE" ]; then
-  echo "Enter the command 'node-start' to begin the node startup script:" && main
+  echo "Enter the command 'workbench start' to begin the node startup script:" && main
 else
   cid=`main` && docker attach --detach-keys $ESC_KEYS $cid && exit 11
 fi

@@ -47,10 +47,7 @@ cd /root
 
 ## Execute startup scripts.
 printf "Executing '$SCRIPT_NAME' scripts ...\n"
-for script in `find ## Install lightning binaries
-[ -z "$(which lightningd)" ] \
-  && printf "Installing clightning binaries ...\n" \
-  && cp -r /root/run/repo/lightning/out/* /usr/local$SCRIPT_PATH/$SCRIPT_NAME -name *.sh | sort`; do
+for script in `find $SCRIPT_PATH/$SCRIPT_NAME -name *.sh | sort`; do
   IND=$IND $script; state="$?"
   if [ $state -ne 0 ]; then exit $state; fi
 done
@@ -59,4 +56,4 @@ done
 [ $? -ne 0 ] && ( templ banner "Script '$SCRIPT_NAME' failed!"; exit 1 )
 
 ## Start terminal service.
-terminal
+[ "$SCRIPT_NAME" = "start" ] && terminal

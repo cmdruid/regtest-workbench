@@ -53,13 +53,9 @@ templ banner "Lightning Core Configuration"
 ## Clear logs.
 ##if [ -e "$LOGS_FILE" ]; then rm $LOGS_FILE && touch $LOGS_FILE; fi
 
-## Install lightning binaries
-[ -z "$(which lightningd)" ] \
-  && printf "Installing clightning binaries ...\n" \
-  && cp -r /root/run/repo/lightning/out/* /usr/local
-
 ## Start lightning daemon.
 $LIBPATH/start/lightning/lightningd-start.sh
+[ "$?" -ne 0 ] && exit 1
 
 ## Start CL-REST Server
 [ -n "$REST_NODE" ] && $LIBPATH/start/lightning/cl-rest-start.sh

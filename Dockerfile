@@ -82,7 +82,7 @@ ENV LNPATH="$HOMEDIR/.lightning"
 ENV PLUGPATH="$RUNPATH/plugins/"
 ENV LNRPCPATH="$LNPATH/regtest/lightning-rpc"
 
-WORKDIR /root/run/repo/clightning
+WORKDIR /root/run/repo/lightning
 RUN poetry install
 
 WORKDIR $HOMEDIR
