@@ -87,4 +87,5 @@ ENV LNRPCPATH="$LNPATH/regtest/lightning-rpc"
 
 WORKDIR $HOMEDIR
 
-ENTRYPOINT [ "node-start" ]
+ENTRYPOINT [ "workbench" ]
+CMD [ "start" ]
