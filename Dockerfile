@@ -51,12 +51,6 @@ RUN PLUGPATH="$CLNPATH/plugins" && mkdir -p $PLUGPATH && cd $PLUGPATH \
   && git clone https://github.com/Ride-The-Lightning/c-lightning-REST.git cl-rest \
   && cd cl-rest && npm install
 
-## Configure user account for Tor.
-# RUN addgroup tor \
-#   && adduser --system --no-create-home tor \
-#   && adduser tor tor \
-#   && chown -R tor:tor /var/lib/tor /var/log/tor
-
 ## Copy configuration and run environment.
 COPY config /
 COPY run $RUNPATH/
@@ -69,7 +63,7 @@ RUN alias_file="~/.bash_aliases" \
 RUN for file in `grep -lr '#!/usr/bin/env' $RUNPATH`; do chmod +x $file; done
 
 ## Symlink entrypoint and login to PATH.
-RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/node-start
+RUN ln -s $RUNPATH/entrypoint.sh /usr/local/bin/workbench
 
 ## Configure run environment.
 ENV PATH="$LIBPATH/bin:$HOMEDIR/.local/bin:$PATH"
