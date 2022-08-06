@@ -67,7 +67,7 @@ The format for configuring each miner is `--miner=poll-time,interval-time,fuzz-a
 
 > Tip: *Use your initial miner node as your main faucet, since the block rewards will have made him filthy rich! Miners may also generate more blocks in order to procure funds if their wallet balance is low.*
 
-Nodes with the `--rest` flag will provide a REST interface on port 3001 (provided by CL-REST). Include `--ports 3001` if you wish to connect to it locally.
+Nodes with the `--rest` flag will provide a REST interface on port 3001 (provided by CL-REST). Include `--ports 3001 --ports 4001` if you wish to connect to it locally.
 
 Nodes with the `--tor` flag will auto-magically use onion routing when peered with other tor-enabled nodes, no extra configuration required. This flag will also configure a node's endpoints as (v3) hidden services. Tor nodes can still communicate with non-tor nodes, but will default to using tor when available (unless given the `--local` flag).
 
@@ -127,6 +127,33 @@ The entire run folder is copied at build time, located at `/root/run` in the ima
 Each node will mount this folder on startup, then use it as a shared repository for providing their own configuration data. Each folder is namespaced after a node's hostname, and used by other nodes in order to peer and connect with each other. These files are constantly created and destroyed by their respective nodes, so that the data remains fresh and accurate.
 
 If tor is enabled for a given node, its share data can also be copied to other machines for more complex configurations.
+
+## CL-REST
+
+Starting workbench with `--ports 3001` maps the `3001` port to the host's `3001` port. `3001` is CL-RESTS's data port. Likewise with `--ports 4001`, giving you access to the documentation port `https://localhost:4001/api-docs`.
+
+### Copying the cert and macaroon
+
+You'll want to copy the cert and macaroon out of the container:
+
+```
+docker cp bob.regtest.node:/data/certs/certificate.pem .
+docker cp bob.regtest.node:/data/certs/access.macaroon .
+```
+
+Here's an sample Python call to the '/v1/getinfo` endpoint:
+
+```python
+import base64, codecs, json, requests
+
+url = "https://localhost:3001/v1/getinfo"
+cert_path = "certificate.pem"
+macaroon = codecs.encode(open("access.macaroon", "rb").read(), "hex")
+headers = {"macaroon": macaroon, "encodingtype": "hex"}
+r = requests.get(url, headers=headers, verify=cert_path)
+print(r.json())
+```
+
 
 ## Development
 
