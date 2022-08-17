@@ -1,0 +1,12 @@
+name: build
+on:
+  push:
+    branches: [ build ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: ./workbench.sh build
+      continue-on-error: true # due to exit 11
