@@ -39,7 +39,7 @@ def getbalance(digits=2):
 
 
 def is_new_chain():
-  return 1 if int(bcli('getblockchaininfo')['chainwork']) > 2 else 0
+  return int(bcli('getblockchaininfo')['chainwork'], 16)
 
 
 def print_result(result):

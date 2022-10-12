@@ -37,6 +37,7 @@ if [ -z "$(which lightningd)" ]; then
   [ ! -d "$REPOPATH/out/bin" ] \
     && printf "Building clightning binaries ...\n" \
     && cd $REPOPATH \
+    && git checkout projects/splicening_sandbox \
     && ./configure --prefix=out --enable-developer --enable-experimental-features \
     && make && make install
   printf "Installing clightning binaries ..."
